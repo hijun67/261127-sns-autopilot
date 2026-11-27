@@ -177,8 +177,10 @@ function renderDashboard() {
   $('#heroFreq').textContent = freq;
   $('#heroChannels').textContent = publishChannelIds().length || CHANNELS.length;
 
-  $('#kpiToday').textContent = todays.length || freq;
-  $('#kpiTodayFoot').textContent = todays.length ? `슬롯 ${freq}개 중 ${todays.length}개 등록` : `슬롯 ${freq}개 대기`;
+  $('#kpiToday').textContent = todays.length;
+  $('#kpiTodayFoot').textContent = todays.length
+    ? `슬롯 ${freq}개 중 ${todays.length}개 등록`
+    : `예약 0건 · 하루 ${freq}회 주기`;
   $('#kpiPending').textContent = summary.pending;
   $('#kpiPublished').textContent = summary.published;
   const conn = connectedChannels();
@@ -246,7 +248,9 @@ function renderDashboard() {
   }
   $('#channelMini').innerHTML = mini.join('');
 
-  $('#todayPill').textContent = `오늘 ${todays.filter((q) => q.status === 'published').length}/${todays.length || freq}`;
+  $('#todayPill').textContent = todays.length
+    ? `오늘 ${todays.filter((q) => q.status === 'published').length}/${todays.length}`
+    : '오늘 예약 0';
   $('#navQueueBadge').textContent = summary.pending + summary.approved;
 
   const ai = aiLabel();
@@ -849,10 +853,17 @@ function fillToday() {
   if (result.added.length && !current) current = result.added[0].content;
   persist();
   renderAll();
+  const nextDay = result.added.filter((q) => String(q.scheduledAt).slice(0, 10) !== today).length;
+  const notes = [];
+  if (result.past) notes.push(`이미 지난 ${result.past}개 슬롯은 건너뜀`);
+  if (result.skipped) notes.push(`이미 등록된 ${result.skipped}개는 건너뜀`);
+  if (nextDay) notes.push(`자정 이후 ${nextDay}건은 내일 날짜로 등록`);
   toast(
     result.added.length
-      ? `오늘 ${result.added.length}개 슬롯을 큐에 채웠습니다.${result.skipped ? ` (이미 등록된 ${result.skipped}개는 건너뜀)` : ''}`
-      : '오늘 슬롯이 이미 모두 채워져 있습니다.',
+      ? `지금부터 ${result.added.length}개 슬롯을 큐에 채웠습니다.${notes.length ? ` (${notes.join(' · ')})` : ''}`
+      : result.past
+        ? `오늘 남은 슬롯이 없습니다. (지난 ${result.past}개 슬롯 제외)`
+        : '오늘 슬롯이 이미 모두 채워져 있습니다.',
     result.added.length ? 'ok' : 'warn'
   );
 }
@@ -1184,6 +1195,7 @@ function bind() {
     state = result.state;
     current = state.lastGenerated || null;
     applyTheme();
+    persist();
     renderAll();
     toast(`큐 ${state.queue.length}건을 불러왔습니다.`, 'ok');
     e.target.value = '';

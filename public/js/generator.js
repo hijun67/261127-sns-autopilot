@@ -104,6 +104,43 @@ export function nextSlot(perDay, now = new Date()) {
   return { time: times[0], dayOffset: 1 };
 }
 
+/** HH:MM 시각을 'YYYY-MM-DDTHH:MM:00' 형태로 */
+function toDateTime(dateISO, time) {
+  return `${dateISO}T${time}:00`;
+}
+
+/**
+ * 하루 창의 슬롯을 실제 날짜·시각으로 확정합니다.
+ * 하루 창은 타임테이블 첫 시각에서 시작해 자정을 넘기면 다음 날짜로 넘어갑니다.
+ * (예: 12회 타임테이블의 01·03·05시는 첫 시각 07:00보다 이르므로 다음 날)
+ * now보다 이른 슬롯은 past=true 로 표시합니다.
+ * @returns {Array<{time, dateISO, scheduledAt, slot, channelId, formatId, past}>}
+ */
+export function resolveDaySlots(perDay, channelIds = ['instagram'], dateISO = dateKey(), now = new Date()) {
+  const times = scheduleTimes(perDay);
+  const dayStart = toMinutes(times[0]);
+  const channels = channelIds.length ? channelIds : ['instagram'];
+  const nowMs = now.getTime();
+  return times.map((time, index) => {
+    const minutes = toMinutes(time);
+    const slotDateISO = minutes < dayStart ? addDays(dateISO, 1) : dateISO;
+    const scheduledAt = toDateTime(slotDateISO, time);
+    const channelId = channels[index % channels.length];
+    const channel = getChannel(channelId);
+    const formatId = channel ? channel.formats[index % channel.formats.length] : 'sns';
+    return {
+      time,
+      dateISO: slotDateISO,
+      scheduledAt,
+      slot: index + 1,
+      channelId,
+      formatId,
+      past: new Date(scheduledAt).getTime() <= nowMs,
+      label: `${slotDateISO} ${time}`,
+    };
+  });
+}
+
 /** 로컬 날짜 YYYY-MM-DD */
 export function dateKey(d = new Date()) {
   const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
@@ -576,30 +613,43 @@ export function queueForDate(queue = [], dateISO = dateKey()) {
 }
 
 /**
- * 하루치 스케줄을 큐에 등록합니다. 같은 날 같은 슬롯이 이미 있으면 건너뜁니다.
- * @returns {{queue:Array, added:Array, skipped:number}}
+ * 하루치 스케줄을 큐에 등록합니다.
+ * - 같은 날 같은 슬롯이 이미 있으면 건너뜁니다.
+ * - skipPast(기본 true)면 이미 지난 시각 슬롯은 넣지 않습니다.
+ * - 자정을 넘긴 슬롯(12회의 01·03·05시 등)은 다음 날 날짜로 들어갑니다.
+ * @returns {{queue:Array, added:Array, skipped:number, past:number}}
  */
-export function fillDayQueue(queue, { perDay, dateISO, channels, buildContent, mode = 'semi' }) {
-  const timeline = buildTimeline(perDay, channels, dateISO);
+export function fillDayQueue(
+  queue,
+  { perDay, dateISO = dateKey(), channels, buildContent, mode = 'semi', now = new Date(), skipPast = true }
+) {
+  const slots = resolveDaySlots(perDay, channels, dateISO, now);
   const added = [];
   let skipped = 0;
+  let past = 0;
   let nextQueue = [...(queue || [])];
-  timeline.forEach((slot, index) => {
-    const scheduledAt = `${dateISO}T${slot.time}:00`;
-    const exists = nextQueue.some((q) => String(q.scheduledAt).slice(0, 16) === scheduledAt.slice(0, 16) && q.channelId === slot.channelId);
+  slots.forEach((slot, index) => {
+    if (skipPast && slot.past) {
+      past += 1;
+      return;
+    }
+    const key = slot.scheduledAt.slice(0, 16);
+    const exists = nextQueue.some(
+      (q) => String(q.scheduledAt).slice(0, 16) === key && q.channelId === slot.channelId
+    );
     if (exists) {
       skipped += 1;
       return;
     }
     const content = buildContent({ ...slot, index });
     const item = makeQueueItem(content, {
-      scheduledAt,
+      scheduledAt: slot.scheduledAt,
       status: mode === 'auto' && content.meta.apiSupported ? 'approved' : 'pending',
     });
     nextQueue.push(item);
     added.push(item);
   });
-  return { queue: nextQueue, added, skipped };
+  return { queue: nextQueue, added, skipped, past };
 }
 
 /** 1개 소스 → 여러 채널 패키지 (원소스 멀티유즈) */

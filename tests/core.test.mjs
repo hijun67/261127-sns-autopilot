@@ -247,13 +247,14 @@ test('큐 요약과 날짜 필터', () => {
 test('하루 스케줄 채우기: 4개 추가, 두 번째 호출은 중복 건너뜀', () => {
   const buildContent = (slot) =>
     generateContent({ topic: '연말정산', goalId: 'affiliate', sourceId: 'self', channelId: slot.channelId, formatId: slot.formatId });
-  const first = fillDayQueue([], { perDay: 4, dateISO: '2026-11-27', channels: ['instagram'], buildContent });
+  const now = new Date(2026, 10, 27, 8, 0);
+  const first = fillDayQueue([], { perDay: 4, dateISO: '2026-11-27', channels: ['instagram'], buildContent, now });
   assert.equal(first.added.length, 4);
   assert.equal(first.skipped, 0);
   assert.deepEqual(first.added.map((q) => q.scheduledAt.slice(11, 16)), ['09:00', '13:00', '18:00', '22:00']);
   assert.ok(first.added.every((q) => q.status === 'pending'));
 
-  const second = fillDayQueue(first.queue, { perDay: 4, dateISO: '2026-11-27', channels: ['instagram'], buildContent });
+  const second = fillDayQueue(first.queue, { perDay: 4, dateISO: '2026-11-27', channels: ['instagram'], buildContent, now });
   assert.equal(second.added.length, 0);
   assert.equal(second.skipped, 4);
 });
@@ -261,7 +262,7 @@ test('하루 스케줄 채우기: 4개 추가, 두 번째 호출은 중복 건�
 test('자동 모드는 API 채널만 승인 상태로 만든다', () => {
   const buildContent = (slot) =>
     generateContent({ topic: '연말정산', goalId: 'affiliate', sourceId: 'self', channelId: slot.channelId, formatId: slot.formatId });
-  const { added } = fillDayQueue([], { perDay: 2, dateISO: '2026-11-27', channels: ['instagram', 'naver'], mode: 'auto', buildContent });
+  const { added } = fillDayQueue([], { perDay: 2, dateISO: '2026-11-27', channels: ['instagram', 'naver'], mode: 'auto', buildContent, now: new Date(2026, 10, 27, 8, 0) });
   const byChannel = Object.fromEntries(added.map((q) => [q.channelId, q.status]));
   assert.equal(byChannel.instagram, 'approved');
   assert.equal(byChannel.naver, 'pending');

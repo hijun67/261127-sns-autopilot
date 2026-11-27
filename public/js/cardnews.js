@@ -6,22 +6,54 @@ const FONT_STACK =
 
 export const CARD_SIZE = 1080;
 
+/** 한 단어가 maxWidth보다 길 때 글자 단위로 쪼갠다 (fallback) */
+function breakLongWord(ctx, word, maxWidth) {
+  const parts = [];
+  let line = '';
+  for (const ch of word) {
+    const test = line + ch;
+    if (line && ctx.measureText(test).width > maxWidth) {
+      parts.push(line);
+      line = ch;
+    } else {
+      line = test;
+    }
+  }
+  if (line) parts.push(line);
+  return parts;
+}
+
+/**
+ * 어절(공백) 단위 줄바꿈 — 어절 중간에서 끊기지 않게 합니다.
+ * 한 어절이 한 줄 폭을 넘을 때만 글자 단위로 쪼갭니다.
+ */
 export function wrapText(ctx, text, maxWidth) {
   const lines = [];
   for (const rawLine of String(text).split('\n')) {
-    if (!rawLine) {
+    const words = rawLine.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) {
       lines.push('');
       continue;
     }
     let line = '';
-    for (const ch of rawLine) {
-      const test = line + ch;
-      if (ctx.measureText(test).width > maxWidth && line) {
-        lines.push(line);
-        line = ch;
-      } else {
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word;
+      if (ctx.measureText(test).width <= maxWidth) {
         line = test;
+        continue;
       }
+      if (line) {
+        lines.push(line);
+        line = '';
+      }
+      if (ctx.measureText(word).width <= maxWidth) {
+        line = word;
+        continue;
+      }
+      const parts = breakLongWord(ctx, word, maxWidth);
+      const tail = parts.pop() || '';
+      lines.push(...parts);
+      line = tail;
     }
     if (line) lines.push(line);
   }
@@ -62,6 +94,10 @@ export function drawSlide(ctx, slide, options = {}) {
   const sub = dark ? 'rgba(248,250,252,0.66)' : 'rgba(15,23,42,0.62)';
 
   ctx.clearRect(0, 0, S, S);
+
+  // 불투명 베이스 — 그라디언트 stop에 알파가 남아도 PNG가 반투명해지지 않게 한다.
+  ctx.fillStyle = dark ? '#0b1020' : '#ffffff';
+  ctx.fillRect(0, 0, S, S);
 
   // 배경
   const bg = ctx.createLinearGradient(0, 0, S, S);
