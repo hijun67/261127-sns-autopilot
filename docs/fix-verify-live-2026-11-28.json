@@ -1,0 +1,324 @@
+{
+  "base": "https://sns-autopilot-bin.pages.dev",
+  "checks": {
+    "E_empty_queue_kpi": {
+      "ok": true,
+      "detail": {
+        "kpiToday": "0",
+        "kpiTodayFoot": "예약 0건 · 하루 4회 주기",
+        "todayPill": "오늘 예약 0",
+        "queue": 0
+      }
+    },
+    "C_mix_bar_width": {
+      "ok": true,
+      "detail": [
+        {
+          "label": "🛒 판매수수료",
+          "val": "30%",
+          "bar": [
+            277,
+            7
+          ],
+          "fill": [
+            83,
+            7
+          ],
+          "fillDisplay": "block"
+        },
+        {
+          "label": "💰 애드센스 트래픽",
+          "val": "20%",
+          "bar": [
+            277,
+            7
+          ],
+          "fill": [
+            55,
+            7
+          ],
+          "fillDisplay": "block"
+        },
+        {
+          "label": "📰 뉴스픽 조회수",
+          "val": "15%",
+          "bar": [
+            277,
+            7
+          ],
+          "fill": [
+            42,
+            7
+          ],
+          "fillDisplay": "block"
+        },
+        {
+          "label": "🎁 이벤트 · CPA 리워드",
+          "val": "10%",
+          "bar": [
+            277,
+            7
+          ],
+          "fill": [
+            28,
+            7
+          ],
+          "fillDisplay": "block"
+        }
+      ]
+    },
+    "C_mix_bar_width_light": {
+      "ok": true,
+      "detail": [
+        [
+          83,
+          7
+        ],
+        [
+          55,
+          7
+        ],
+        [
+          42,
+          7
+        ],
+        [
+          28,
+          7
+        ]
+      ]
+    },
+    "G_word_wrap_live": {
+      "ok": true,
+      "detail": [
+        {
+          "text": "배송비와 구성 차이를 먼저 확인하고 조건을 비교하세요",
+          "lines": [
+            "배송비와 구성 차이를 먼저",
+            "확인하고 조건을 비교하세요"
+          ],
+          "brokenWords": [],
+          "widths": [
+            741,
+            788
+          ]
+        },
+        {
+          "text": "연말정산 환급 늘리는 순서와 놓치기 쉬운 공제 항목 정리",
+          "lines": [
+            "연말정산 환급 늘리는 순서와",
+            "놓치기 쉬운 공제 항목 정리"
+          ],
+          "brokenWords": [],
+          "widths": [
+            804,
+            757
+          ]
+        },
+        {
+          "text": "그르는 기준을 확인하지 않으면 손해를 봅니다",
+          "lines": [
+            "그르는 기준을 확인하지 않으면",
+            "손해를 봅니다"
+          ],
+          "brokenWords": [],
+          "widths": [
+            867,
+            394
+          ]
+        }
+      ]
+    },
+    "A_canvas_alpha_preview": {
+      "ok": true,
+      "detail": [
+        {
+          "w": 1080,
+          "h": 1080,
+          "minAlpha": 255,
+          "nonOpaque": 0,
+          "opaque": 1166400,
+          "total": 1166400
+        },
+        {
+          "w": 1080,
+          "h": 1080,
+          "minAlpha": 255,
+          "nonOpaque": 0,
+          "opaque": 1166400,
+          "total": 1166400
+        },
+        {
+          "w": 1080,
+          "h": 1080,
+          "minAlpha": 255,
+          "nonOpaque": 0,
+          "opaque": 1166400,
+          "total": 1166400
+        },
+        {
+          "w": 1080,
+          "h": 1080,
+          "minAlpha": 255,
+          "nonOpaque": 0,
+          "opaque": 1166400,
+          "total": 1166400
+        },
+        {
+          "w": 1080,
+          "h": 1080,
+          "minAlpha": 255,
+          "nonOpaque": 0,
+          "opaque": 1166400,
+          "total": 1166400
+        },
+        {
+          "w": 1080,
+          "h": 1080,
+          "minAlpha": 255,
+          "nonOpaque": 0,
+          "opaque": 1166400,
+          "total": 1166400
+        },
+        {
+          "w": 1080,
+          "h": 1080,
+          "minAlpha": 255,
+          "nonOpaque": 0,
+          "opaque": 1166400,
+          "total": 1166400
+        },
+        {
+          "w": 1080,
+          "h": 1080,
+          "minAlpha": 255,
+          "nonOpaque": 0,
+          "opaque": 1166400,
+          "total": 1166400
+        }
+      ]
+    },
+    "A_png_download": {
+      "ok": true,
+      "detail": {
+        "path": ".tmp/verify-live/cardnews-01.png",
+        "bytes": 1348936
+      }
+    },
+    "A_canvas_alpha_preview_light": {
+      "ok": true,
+      "detail": [
+        255,
+        255,
+        255,
+        255,
+        255,
+        255,
+        255,
+        255
+      ]
+    },
+    "B_import_persist_reload": {
+      "ok": true,
+      "detail": {
+        "filled": 4,
+        "exported_queue": 4,
+        "after_clear": 0,
+        "in_memory": 4,
+        "localStorage_before_reload": 4,
+        "after_reload_memory": 4,
+        "after_reload_localStorage": 4,
+        "queue_rows": 4
+      }
+    },
+    "D_fill_12_skip_past": {
+      "ok": true,
+      "detail": {
+        "toast": [
+          "큐를 비웠습니다.",
+          "지금부터 12개 슬롯을 큐에 채웠습니다. (자정 이후 3건은 내일 날짜로 등록)"
+        ],
+        "now": "Sat Nov 28 2026 00:49:12 GMT+0900 (한국 표준시)",
+        "perDay": 12,
+        "items": [
+          "2026-11-28T07:00:00",
+          "2026-11-28T09:00:00",
+          "2026-11-28T11:00:00",
+          "2026-11-28T13:00:00",
+          "2026-11-28T15:00:00",
+          "2026-11-28T17:00:00",
+          "2026-11-28T19:00:00",
+          "2026-11-28T21:00:00",
+          "2026-11-28T23:00:00",
+          "2026-11-29T01:00:00",
+          "2026-11-29T03:00:00",
+          "2026-11-29T05:00:00"
+        ]
+      }
+    },
+    "D_fill_4_future_only": {
+      "ok": true,
+      "detail": {
+        "now": "2026-11-27T15:49:14.007Z",
+        "items": [
+          "2026-11-28T09:00:00",
+          "2026-11-28T13:00:00",
+          "2026-11-28T18:00:00",
+          "2026-11-28T22:00:00"
+        ]
+      }
+    },
+    "E_kpi_matches_queue": {
+      "ok": true,
+      "detail": {
+        "kpiToday": "4",
+        "foot": "슬롯 4개 중 4개 등록",
+        "pill": "오늘 0/4"
+      }
+    },
+    "F_mobile_blog_mini_list": {
+      "ok": true,
+      "detail": [
+        {
+          "text": "연말정산 환급 늘리는 순서 사기 전에 꼭 비교해야 하는 한 가지. 같은 제품, 다른 가격인 이유부터 재고와 ",
+          "display": "block",
+          "w": 328,
+          "h": 58,
+          "left": 31
+        },
+        {
+          "text": "연말정산 환급 늘리는 순서, 무엇부터 볼까 — 같은 제품, 다른 가격인 이유 / 쿠폰·카드 할인 적용 순서",
+          "display": "block",
+          "w": 328,
+          "h": 38,
+          "left": 31
+        },
+        {
+          "text": "실제로 확인하는 순서 — 재고와 배송일까지 같이 보기 / 표로 비교하면 차이가 바로 보입니다.",
+          "display": "block",
+          "w": 328,
+          "h": 38,
+          "left": 31
+        },
+        {
+          "text": "자주 묻는 질문 — 기준일과 조건은 언제 달라지나요? / 예외는 어떤 경우인가요?",
+          "display": "block",
+          "w": 328,
+          "h": 38,
+          "left": 31
+        }
+      ]
+    },
+    "F_mobile_no_overflow": {
+      "ok": true,
+      "detail": {
+        "overflow_px": 0
+      }
+    }
+  },
+  "errors": [],
+  "started": "2026-11-28T00:48:57",
+  "app_version": "1.0.1",
+  "finished": "2026-11-28T00:49:18",
+  "passed": true
+}
