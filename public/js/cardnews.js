@@ -87,7 +87,7 @@ function hexToRgba(hex, alpha) {
  * @param {object} options {index, total, accent, theme, brand, subtitle}
  */
 export function drawSlide(ctx, slide, options = {}) {
-  const { index = 0, total = 1, accent = '#6366f1', theme = 'dark', brand = 'SNS 오토파일럿' } = options;
+  const { index = 0, total = 1, accent = '#6366f1', theme = 'dark', brand = '코네스' } = options;
   const S = CARD_SIZE;
   const dark = theme !== 'light';
   const ink = dark ? '#f8fafc' : '#0f172a';

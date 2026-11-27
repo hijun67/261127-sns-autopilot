@@ -21,6 +21,11 @@ export function mergeState(raw) {
   settings.keys = { ...base.settings.keys, ...(raw.settings?.keys || {}) };
   settings.mode = settings.mode === 'auto' ? 'auto' : 'semi';
   settings.theme = settings.theme === 'light' ? 'light' : 'dark';
+  // 브랜드 표기: 비우거나 공백만 남겨도 기본값('코네스')으로 복원한다.
+  settings.brandName =
+    typeof settings.brandName === 'string' && settings.brandName.trim()
+      ? settings.brandName.trim().slice(0, 30)
+      : base.settings.brandName;
 
   const connections = { ...base.connections };
   for (const ch of CHANNELS) {

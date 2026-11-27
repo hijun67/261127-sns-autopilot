@@ -288,6 +288,21 @@ test('기본 상태: 주기 4회 · 톤 info · 프리뷰 모드', () => {
   assert.equal(s.publishChannels.length, 9);
 });
 
+test('브랜드 표기 기본값은 코네스이고, 비워도 코네스로 복원된다', () => {
+  assert.equal(defaultState().settings.brandName, '코네스');
+  assert.equal(mergeState({ settings: { brandName: '' } }).settings.brandName, '코네스');
+  assert.equal(mergeState({ settings: { brandName: '   ' } }).settings.brandName, '코네스');
+  assert.equal(mergeState({ settings: { brandName: null } }).settings.brandName, '코네스');
+  assert.equal(mergeState({}).settings.brandName, '코네스');
+  // 사용자가 직접 넣은 값은 그대로 유지(앞뒤 공백 제거, 30자 제한)
+  assert.equal(mergeState({ settings: { brandName: '  머니큐브  ' } }).settings.brandName, '머니큐브');
+  assert.equal(mergeState({ settings: { brandName: '가'.repeat(40) } }).settings.brandName.length, 30);
+  // 저장 라운드트립에서도 코네스 유지
+  const storage = fakeStorage();
+  saveState(defaultState(), storage);
+  assert.equal(loadState(storage).settings.brandName, '코네스');
+});
+
 test('상태 병합: 누락 필드 보강, 잘못된 테마 방어', () => {
   const merged = mergeState({ settings: { theme: 'neon' }, perDay: 99, queue: [{ id: 'x' }] });
   assert.equal(merged.settings.theme, 'dark');

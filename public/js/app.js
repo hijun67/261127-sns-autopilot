@@ -716,7 +716,7 @@ function drawCards() {
     .join('');
   const accent = getGoal(current.meta.goalId)?.color || '#7c8cff';
   const theme = state.settings.theme;
-  const brand = state.settings.brandName || 'SNS 오토파일럿';
+  const brand = state.settings.brandName || '코네스';
   $$('.card-canvas', grid).forEach((canvas) => {
     const i = Number(canvas.dataset.slide);
     drawSlide(canvas.getContext('2d'), slides[i], { index: i, total: slides.length, accent, theme, brand });
@@ -1013,7 +1013,7 @@ function saveSettings() {
     if (key) state.settings.keys[provider] = key;
     else delete state.settings.keys[provider];
   }
-  state.settings.brandName = $('#brandInput').value.trim().slice(0, 30) || '한일 님';
+  state.settings.brandName = $('#brandInput').value.trim().slice(0, 30) || '코네스';
   state.settings.webhook = $('#webhookInput').value.trim();
   state.settings.integrations = {
     blogger: $('#cfgBlogger').value.trim(),
@@ -1172,7 +1172,7 @@ function bind() {
   $('#downloadAllBtn').addEventListener('click', async () => {
     if (!current) return toast('생성된 카드뉴스가 없습니다.', 'warn');
     const accent = getGoal(current.meta.goalId)?.color || '#7c8cff';
-    await downloadAll(current.cardnews, { accent, theme: state.settings.theme, brand: state.settings.brandName || 'SNS 오토파일럿' });
+    await downloadAll(current.cardnews, { accent, theme: state.settings.theme, brand: state.settings.brandName || '코네스' });
     toast(`${current.cardnews.slides.length}장 PNG를 저장했습니다.`, 'ok');
   });
   $('#copyCaptionBtn').addEventListener('click', () => current && copyText(current.cardnews.caption));
