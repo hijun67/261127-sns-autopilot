@@ -21,7 +21,7 @@ function extractText(provider, data) {
   return data?.choices?.[0]?.message?.content || '';
 }
 
-async function callProvider(provider, apiKey, prompt, maxTokens = 2048) {
+async function callProvider(provider, apiKey, prompt, maxTokens = 4096) {
   const cfg = MODELS[provider];
   const headers = { 'content-type': 'application/json' };
   let body;
@@ -29,7 +29,13 @@ async function callProvider(provider, apiKey, prompt, maxTokens = 2048) {
   if (provider === 'gemini') {
     body = {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.85, maxOutputTokens: maxTokens, responseMimeType: 'application/json' },
+      generationConfig: {
+        temperature: 0.85,
+        maxOutputTokens: maxTokens,
+        responseMimeType: 'application/json',
+        // 2.5 Flash는 thinking이 기본 ON이라 응답이 잘리고 느려집니다. JSON 생성에는 끕니다.
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     };
   } else if (provider === 'openrouter') {
     headers.authorization = `Bearer ${apiKey}`;
