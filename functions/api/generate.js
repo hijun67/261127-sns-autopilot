@@ -33,7 +33,7 @@ async function callProvider(provider, apiKey, prompt, maxTokens = 2048) {
     };
   } else if (provider === 'openrouter') {
     headers.authorization = `Bearer ${apiKey}`;
-    headers['http-referer'] = 'https://sns-autopilot.pages.dev';
+    headers['http-referer'] = 'https://sns-autopilot-bin.pages.dev';
     headers['x-title'] = 'SNS Autopilot';
     body = {
       model: cfg.model,

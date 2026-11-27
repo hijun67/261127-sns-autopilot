@@ -3,7 +3,8 @@
 매일 **1회 ~ 24회**, **9개 채널**에 올릴 콘텐츠를 한 곳에서 만들고 발행 큐까지 관리하는 SNS 자동화 스튜디오입니다.
 소스 하나(뉴스픽·쿠팡파트너스·브랜드커넥트·토스·내 사이트·키워드)를 넣으면 **쇼츠 대본 · 카드뉴스(1080×1080) · 블로그 HTML · SNS 단문/스레드** 4종을 한 번에 만들고, 하루 타임테이블에 맞춰 큐에 쌓습니다.
 
-- **라이브**: https://sns-autopilot.pages.dev (Cloudflare Pages)
+- **라이브**: **https://sns-autopilot-bin.pages.dev** (Cloudflare Pages)
+  - 프로젝트 이름은 `sns-autopilot` 이지만, `sns-autopilot.pages.dev` 주소는 **다른 사용자가 이미 선점**하고 있어(2026-11-27 확인, 일본어 ‘投稿案の承認’ 서비스) Cloudflare가 `-bin` 접미사를 붙였습니다. 원하시면 나중에 `sns.cones.info` 같은 사용자 도메인을 붙일 수 있습니다.
 - **저장소**: `hijun67/261127-sns-autopilot`
 - **만든 날**: 2026-11-27 (KST)
 
@@ -111,6 +112,14 @@ wrangler pages deploy public --project-name sns-autopilot
 - 실패: `{ "ok": false, "error": "..." }` (400 키/입력 오류, 401/429/502/504 업스트림 오류)
 
 ## 검증 결과 (2026-11-27)
+
+### 라이브 사이트 (https://sns-autopilot-bin.pages.dev)
+`scripts/verify_live.py` — 실제 배포 URL에서 같은 흐름 재검증
+- 콘솔/페이지 에러 **0건**, 가로 넘침 **0건**(1440·390)
+- `/api/generate` GET **200**, 키 없이 POST **400**, 잘못된 키 POST **502 + 오류 메시지**
+- 카드뉴스 8장 렌더, 4회/일 큐 4건(09·13·18·22시) 등록 확인
+
+### 로컬 (상세)
 
 `scripts/verify_ui.py` — 데스크톱 1440×900 + 모바일 390×844 Chromium 실행
 

@@ -6,7 +6,7 @@ export const APP = {
   version: '1.0.0',
   tagline: '매일 1회~24회 · 9개 채널 · 생성부터 발행 큐까지',
   storageKey: 'sns-autopilot-state-v1',
-  site: 'https://sns-autopilot.pages.dev',
+  site: 'https://sns-autopilot-bin.pages.dev',
 };
 
 /**
