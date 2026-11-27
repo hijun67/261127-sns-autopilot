@@ -423,8 +423,13 @@ function buildShorts({ topic, hook, points, ctaText, tone, seed, hashtags }) {
 }
 
 function shortLink(url) {
-  const clean = String(url).replace(/^https?:\/\//, '').replace(/\/$/, '');
-  return clean.length > 46 ? `${clean.slice(0, 45)}…` : clean;
+  try {
+    const u = new URL(url);
+    return u.hostname.replace(/^www\./, '');
+  } catch {
+    const clean = String(url).replace(/^https?:\/\//, '').replace(/\/$/, '');
+    return clean.length > 32 ? `${clean.slice(0, 31)}…` : clean;
+  }
 }
 
 function buildCardnews({ topic, hook, points, ctaText, link, disclosure, goal, channel, seed }) {
@@ -435,7 +440,7 @@ function buildCardnews({ topic, hook, points, ctaText, link, disclosure, goal, c
     { kicker: 'POINT 2', headline: points[1], body: '여기서 대부분의 차이가 갈립니다.' },
     { kicker: 'POINT 3', headline: points[2], body: '마지막으로 꼭 확인하세요.' },
     { kicker: 'CHECK', headline: '한 줄 체크리스트', body: points.map((p) => `· ${p}`).join('\n') },
-    { kicker: 'NEXT', headline: ctaText, body: link ? `링크: ${shortLink(link)}` : `${channel.name} 프로필 링크 확인`, emphasis: true },
+    { kicker: 'NEXT', headline: ctaText, body: link ? `프로필 링크 · ${shortLink(link)}` : `${channel.name} 프로필 링크 확인`, emphasis: true },
   ];
   if (disclosure) {
     slides.push({ kicker: 'DISCLOSURE', headline: '대가성 문구', body: DISCLOSURE_TEXT, small: true });
