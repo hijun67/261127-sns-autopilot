@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1020" />
+<title>SNS 오토파일럿 — 매일 1회~24회 SNS 자동화 스튜디오</title>
+<meta name="description" content="뉴스픽·쿠팡파트너스·브랜드커넥트·토스 소스에서 4종 콘텐츠를 만들고, 9개 채널 발행 큐를 매일 1~24회 자동으로 채우는 SNS 자동화 스튜디오." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236366f1'/%3E%3Cpath d='M34 12 20 36h11l-3 16 16-26H32l2-14z' fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" aria-label="주 메뉴">
+    <a class="brand" href="#" data-view-link="dashboard">
+      <span class="brand-mark" aria-hidden="true">⚡</span>
+      <span class="brand-text">
+        <strong>SNS 오토파일럿</strong>
+        <small>매일 1회 ~ 24회</small>
+      </span>
+    </a>
+
+    <nav class="side-nav">
+      <button class="nav-item active" data-view="dashboard"><span aria-hidden="true">◎</span>대시보드</button>
+      <button class="nav-item" data-view="studio"><span aria-hidden="true">✎</span>생성 스튜디오</button>
+      <button class="nav-item" data-view="cardnews"><span aria-hidden="true">▤</span>카드뉴스</button>
+      <button class="nav-item" data-view="queue"><span aria-hidden="true">⏱</span>스케줄 · 큐 <b class="nav-badge" id="navQueueBadge">0</b></button>
+      <button class="nav-item" data-view="channels"><span aria-hidden="true">⌘</span>채널 관리</button>
+      <button class="nav-item" data-view="goals"><span aria-hidden="true">◆</span>수익 목표</button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="mode-card">
+        <div class="mode-line"><span>현재 AI</span><strong id="sideAiMode">프리뷰 템플릿</strong></div>
+        <div class="mode-line"><span>발행 방식</span><strong id="sideMode">반자동</strong></div>
+        <button class="btn btn-ghost btn-sm" id="openSettingsBtn" type="button">연결 · 설정</button>
+      </div>
+      <p class="side-note">키를 넣기 전에도 4종 포맷을 바로 테스트할 수 있습니다.</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1 id="viewTitle">대시보드</h1>
+        <p id="viewSub">오늘의 발행 계획과 수익 목표를 한눈에 봅니다.</p>
+      </div>
+      <div class="topbar-actions">
+        <span class="pill" id="aiModePill" title="AI 생성 모드">프리뷰 템플릿</span>
+        <span class="pill pill-soft" id="todayPill">오늘 0/4</span>
+        <button class="icon-btn" id="themeBtn" type="button" aria-label="다크/라이트 모드 전환" title="다크/라이트 전환">◐</button>
+        <button class="icon-btn" id="settingsBtn" type="button" aria-label="설정" title="설정">⚙</button>
+      </div>
+    </header>
+
+    <div class="toast-stack" id="toastStack" role="status" aria-live="polite"></div>
+
+    <!-- ============================ 대시보드 ============================ -->
+    <section class="view active" id="view-dashboard" aria-labelledby="viewTitle">
+      <div class="hero-card">
+        <div class="hero-copy">
+          <span class="eyebrow">TODAY · <span id="heroDate">—</span></span>
+          <h2>매일 <span id="heroFreq">4</span>회, <span id="heroChannels">9</span>개 채널을<br />한 번에 굴립니다.</h2>
+          <p id="heroLine">소스 하나를 넣으면 카드뉴스·쇼츠 대본·블로그·스레드까지 자동으로 만들어 발행 큐에 쌓습니다.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" id="heroGenerateBtn" type="button">오늘 콘텐츠 생성</button>
+            <button class="btn btn-ghost" data-view-link="studio" type="button">스튜디오 열기</button>
+          </div>
+        </div>
+        <div class="hero-side">
+          <div class="control-block">
+            <span class="control-label">게시 주기</span>
+            <div class="chip-row" id="freqChips" role="group" aria-label="하루 게시 횟수"></div>
+          </div>
+          <div class="control-block">
+            <span class="control-label">발행 방식</span>
+            <div class="segmented" id="modeSegmented" role="group" aria-label="발행 방식">
+              <button type="button" data-mode="semi">반자동 · 승인 후</button>
+              <button type="button" data-mode="auto">자동 · API 채널</button>
+            </div>
+            <p class="hint" id="modeHint">생성만 자동, 발행은 승인 후 진행합니다.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <span class="kpi-label">오늘 예약</span>
+          <strong class="kpi-value" id="kpiToday">0</strong>
+          <span class="kpi-foot" id="kpiTodayFoot">슬롯 0개 대기</span>
+        </article>
+        <article class="kpi-card">
+          <span class="kpi-label">승인 대기</span>
+          <strong class="kpi-value" id="kpiPending">0</strong>
+          <span class="kpi-foot">확인 후 발행</span>
+        </article>
+        <article class="kpi-card">
+          <span class="kpi-label">발행 완료</span>
+          <strong class="kpi-value" id="kpiPublished">0</strong>
+          <span class="kpi-foot">누적 큐 기준</span>
+        </article>
+        <article class="kpi-card">
+          <span class="kpi-label">연결 채널</span>
+          <strong class="kpi-value" id="kpiChannels">0<span class="kpi-unit">/9</span></strong>
+          <span class="kpi-foot" id="kpiChannelsFoot">API 연동 0곳</span>
+        </article>
+      </div>
+
+      <div class="split-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <h3>오늘의 타임라인</h3>
+            <button class="link-btn" data-view-link="queue" type="button">큐 열기 →</button>
+          </div>
+          <ol class="timeline" id="timelineList"></ol>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <h3>수익 목표 믹스</h3>
+            <button class="link-btn" data-view-link="goals" type="button">조정 →</button>
+          </div>
+          <div class="mix-list" id="mixList"></div>
+        </article>
+      </div>
+
+      <div class="split-grid split-2-1">
+        <article class="panel">
+          <div class="panel-head">
+            <h3>다음 발행 한 줄 미리보기</h3>
+            <span class="muted" id="previewMeta">—</span>
+          </div>
+          <div class="preview-line" id="nextPreview">
+            <p class="empty">아직 생성된 콘텐츠가 없습니다. 스튜디오에서 첫 콘텐츠를 만들어 보세요.</p>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><h3>채널 상태</h3></div>
+          <ul class="channel-mini" id="channelMini"></ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============================ 생성 스튜디오 ============================ -->
+    <section class="view" id="view-studio">
+      <div class="studio-grid">
+        <div class="studio-controls">
+          <article class="panel step">
+            <header class="step-head"><span class="step-no">1</span><div><h3>소스 · 제휴 허브</h3><p>어디서 가져온 콘텐츠인지 고르면 링크 구조와 문구가 달라집니다.</p></div></header>
+            <div class="source-grid" id="sourceGrid"></div>
+            <label class="field">
+              <span id="keywordLabel">키워드 · 주제</span>
+              <input id="keywordInput" type="text" placeholder="예: 연말정산 환급 늘리는 순서" maxlength="80" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>링크 (선택)</span>
+              <input id="linkInput" type="url" placeholder="https://... 제휴·원문 링크" maxlength="300" autocomplete="off" />
+            </label>
+            <p class="hint" id="sourceHint"></p>
+          </article>
+
+          <article class="panel step">
+            <header class="step-head"><span class="step-no">2</span><div><h3>수익 목표</h3><p>선택한 목표에 따라 훅·CTA·링크 구조가 바뀝니다.</p></div></header>
+            <div class="goal-grid" id="goalGrid"></div>
+          </article>
+
+          <article class="panel step">
+            <header class="step-head"><span class="step-no">3</span><div><h3>채널 · 포맷</h3><p>채널이 지원하는 포맷만 보여 줍니다.</p></div></header>
+            <div class="channel-pick" id="channelPick"></div>
+            <div class="format-pick" id="formatPick"></div>
+            <label class="check-line">
+              <input type="checkbox" id="disclosureToggle" />
+              <span>공정위 대가성 문구 자동 삽입 <small>(제휴 소스에서만 적용)</small></span>
+            </label>
+          </article>
+
+          <article class="panel step">
+            <header class="step-head"><span class="step-no">4</span><div><h3>생성 옵션</h3><p>키가 없으면 구조화 템플릿으로 즉시 생성합니다.</p></div></header>
+            <div class="tone-row" id="toneRow"></div>
+            <div class="gen-actions">
+              <button class="btn btn-primary" id="generateBtn" type="button">4종 콘텐츠 생성</button>
+              <button class="btn btn-ghost" id="packBtn" type="button">멀티 채널 패키지</button>
+            </div>
+            <p class="hint" id="genHint">프리뷰 모드 — AI 키를 넣으면 같은 구조로 실제 문장을 생성합니다.</p>
+          </article>
+        </div>
+
+        <div class="studio-result">
+          <article class="panel result-panel">
+            <div class="panel-head">
+              <h3>생성 결과</h3>
+              <span class="pill pill-soft" id="resultMode">대기</span>
+            </div>
+            <div id="resultEmpty" class="result-empty">
+              <div class="empty-illustration" aria-hidden="true">⚡</div>
+              <h4>왼쪽 4단계를 고르고 생성하세요</h4>
+              <p>소스 → 목표 → 채널 → 생성. 카드뉴스는 1080×1080 PNG로 바로 저장됩니다.</p>
+            </div>
+            <div id="resultBody" class="result-body" hidden>
+              <div class="result-headline">
+                <h4 id="resultTitle">—</h4>
+                <p id="resultHook">—</p>
+                <div class="tag-row" id="resultTags"></div>
+              </div>
+              <div class="tabs" id="resultTabs" role="tablist">
+                <button class="tab active" data-tab="reels" type="button">쇼츠·릴스</button>
+                <button class="tab" data-tab="cardnews" type="button">카드뉴스</button>
+                <button class="tab" data-tab="blog" type="button">블로그</button>
+                <button class="tab" data-tab="sns" type="button">SNS</button>
+              </div>
+              <div class="tab-panels" id="tabPanels"></div>
+              <div class="result-actions">
+                <button class="btn btn-primary btn-sm" id="addQueueBtn" type="button">큐에 등록</button>
+                <button class="btn btn-ghost btn-sm" id="openCardsBtn" type="button">카드뉴스 열기</button>
+                <button class="btn btn-ghost btn-sm" id="copyAllBtn" type="button">전체 복사</button>
+              </div>
+              <p class="disclosure-note" id="disclosureNote" hidden></p>
+            </div>
+          </article>
+
+          <article class="panel guide-panel" id="publishGuide">
+            <div class="panel-head"><h3>발행 가이드</h3><span class="muted" id="guideChannel">—</span></div>
+            <ol class="guide-steps" id="guideSteps"></ol>
+            <p class="hint" id="guideTip"></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ 카드뉴스 ============================ -->
+    <section class="view" id="view-cardnews">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h3 id="cardTitle">카드뉴스 스튜디오</h3>
+            <p class="muted" id="cardSub">1080×1080 · 최대 8장 · PNG 저장</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost btn-sm" id="downloadAllBtn" type="button">전체 PNG 저장</button>
+            <button class="btn btn-ghost btn-sm" id="copyCaptionBtn" type="button">캡션 복사</button>
+          </div>
+        </div>
+        <div class="card-grid" id="cardGrid"></div>
+        <p class="empty" id="cardEmpty">스튜디오에서 콘텐츠를 생성하면 카드뉴스 미리보기가 여기에 나타납니다.</p>
+      </article>
+    </section>
+
+    <!-- ============================ 스케줄 · 큐 ============================ -->
+    <section class="view" id="view-queue">
+      <article class="panel queue-head-panel">
+        <div class="queue-head-grid">
+          <div class="control-block">
+            <span class="control-label">하루 게시 횟수</span>
+            <div class="chip-row" id="queueFreqChips" role="group" aria-label="하루 게시 횟수"></div>
+            <p class="hint" id="queueTimeHint">—</p>
+          </div>
+          <div class="control-block">
+            <span class="control-label">발행 모드</span>
+            <div class="segmented" id="queueModeSegmented" role="group" aria-label="발행 모드">
+              <button type="button" data-mode="semi">반자동</button>
+              <button type="button" data-mode="auto">자동</button>
+            </div>
+            <p class="hint">자동 모드는 API 지원 채널만 승인 없이 발행 대기로 넘깁니다.</p>
+          </div>
+          <div class="queue-cta">
+            <button class="btn btn-primary" id="fillDayBtn" type="button">오늘 스케줄 채우기</button>
+            <div class="queue-io">
+              <button class="btn btn-ghost btn-sm" id="exportBtn" type="button">JSON 내보내기</button>
+              <label class="btn btn-ghost btn-sm file-btn">JSON 불러오기<input type="file" id="importFile" accept="application/json,.json" hidden /></label>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <div class="kpi-grid kpi-grid-4">
+        <article class="kpi-card"><span class="kpi-label">전체</span><strong class="kpi-value" id="qTotal">0</strong></article>
+        <article class="kpi-card"><span class="kpi-label">대기</span><strong class="kpi-value" id="qPending">0</strong></article>
+        <article class="kpi-card"><span class="kpi-label">승인</span><strong class="kpi-value" id="qApproved">0</strong></article>
+        <article class="kpi-card"><span class="kpi-label">발행 완료</span><strong class="kpi-value" id="qPublished">0</strong></article>
+      </div>
+
+      <article class="panel">
+        <div class="panel-head queue-toolbar">
+          <div class="filter-tabs" id="queueFilters">
+            <button class="tab active" data-filter="all" type="button">전체</button>
+            <button class="tab" data-filter="pending" type="button">대기</button>
+            <button class="tab" data-filter="approved" type="button">승인</button>
+            <button class="tab" data-filter="published" type="button">발행</button>
+            <button class="tab" data-filter="skipped" type="button">건너뛰기</button>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-ghost btn-sm" id="approveAllBtn" type="button">대기 모두 승인</button>
+            <button class="btn btn-ghost btn-sm danger" id="clearQueueBtn" type="button">큐 비우기</button>
+          </div>
+        </div>
+        <ul class="queue-list" id="queueList"></ul>
+        <p class="hint">발행 처리 전에 <strong>복사</strong>로 문구를 꺼내 계정에 그대로 올릴 수 있습니다. API 연동 전까지 실제 게시는 ‘복사 → 붙여넣기’로 완료됩니다.</p>
+        <p class="empty" id="queueEmpty">큐가 비어 있습니다. ‘오늘 스케줄 채우기’를 눌러 8개 채널 발행 계획을 만드세요.</p>
+      </article>
+    </section>
+
+    <!-- ============================ 채널 관리 ============================ -->
+    <section class="view" id="view-channels">
+      <article class="panel intro-panel">
+        <div class="panel-head"><h3>9개 게시 채널</h3><span class="muted">연결 상태는 이 브라우저에 저장됩니다.</span></div>
+        <p class="hint">네이버 블로그·티스토리는 공식 글쓰기 API가 종료되어 <strong>원클릭 복사 → 에디터 붙여넣기</strong>로 발행합니다. 나머지 채널은 API 키를 넣으면 자동 발행 대상이 됩니다.</p>
+      </article>
+      <div class="channel-grid" id="channelGrid"></div>
+      <article class="panel">
+        <div class="panel-head"><h3>채널별 발행 한도 · 팁</h3></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>채널</th><th>지원 포맷</th><th>API</th><th>한도</th><th>운영 팁</th></tr></thead>
+            <tbody id="channelTable"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============================ 수익 목표 ============================ -->
+    <section class="view" id="view-goals">
+      <article class="panel intro-panel">
+        <div class="panel-head"><h3>수익화 · 운영 목표 9종</h3><span class="muted">가중치는 콘텐츠 배분 비율입니다.</span></div>
+        <p class="hint">목표를 바꾸면 훅·본문·CTA·링크 구조가 함께 바뀝니다. 제휴 소스(쿠팡·브랜드커넥트·토스)를 고르면 공정위 대가성 문구가 자동으로 들어갑니다.</p>
+        <div class="focus-banner">
+          <span>현재 집중 목표</span>
+          <strong id="focusGoalName">판매수수료</strong>
+          <span class="muted" id="focusGoalKpi">구매 전환 (CPS)</span>
+        </div>
+      </article>
+      <div class="goal-card-grid" id="goalCardGrid"></div>
+      <article class="panel">
+        <div class="panel-head"><h3>목표별 문구 · CTA 구조</h3></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>목표</th><th>훅 각도</th><th>CTA</th><th>링크</th><th>KPI</th></tr></thead>
+            <tbody id="goalTable"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <nav class="mobile-nav" aria-label="모바일 메뉴">
+    <button class="mnav active" data-view="dashboard" type="button"><span>◎</span>홈</button>
+    <button class="mnav" data-view="studio" type="button"><span>✎</span>생성</button>
+    <button class="mnav" data-view="cardnews" type="button"><span>▤</span>카드</button>
+    <button class="mnav" data-view="queue" type="button"><span>⏱</span>큐</button>
+    <button class="mnav" data-view="channels" type="button"><span>⌘</span>채널</button>
+  </nav>
+</div>
+
+<!-- ============================ 설정 다이얼로그 ============================ -->
+<dialog id="settingsDialog" class="sheet">
+  <form method="dialog" class="sheet-inner" id="settingsForm">
+    <header class="sheet-head">
+      <div><h3>연결 · 설정</h3><p>키는 이 브라우저에만 저장되고, 생성 요청 때 /api/generate 로만 전송됩니다.</p></div>
+      <button class="icon-btn" value="close" type="submit" aria-label="닫기">✕</button>
+    </header>
+
+    <div class="sheet-grid">
+      <section class="sheet-section">
+        <h4>AI 생성</h4>
+        <label class="field">
+          <span>제공자</span>
+          <select id="providerSelect"></select>
+        </label>
+        <label class="field">
+          <span>API 키 (BYOK)</span>
+          <input id="apiKeyInput" type="password" autocomplete="off" spellcheck="false" placeholder="키를 넣으면 AI 모드로 전환됩니다" />
+        </label>
+        <div class="inline-actions">
+          <button class="btn btn-ghost btn-sm" id="testKeyBtn" type="button">연결 테스트</button>
+          <span class="hint" id="keyStatus">프리뷰 템플릿 모드</span>
+        </div>
+        <label class="field">
+          <span>브랜드 표기</span>
+          <input id="brandInput" type="text" maxlength="30" placeholder="예: 머니큐브" />
+        </label>
+        <label class="field">
+          <span>웹훅 URL (선택)</span>
+          <input id="webhookInput" type="url" placeholder="https://hooks.zapier.com/..." />
+        </label>
+      </section>
+
+      <section class="sheet-section">
+        <h4>계정 · API 연동</h4>
+        <label class="field"><span>Blogger (cones.asia)</span><input id="cfgBlogger" type="text" placeholder="블로그 ID 또는 OAuth 클라이언트" /></label>
+        <label class="field"><span>X (Twitter)</span><input id="cfgX" type="text" placeholder="API Key / Bearer" /></label>
+        <label class="field"><span>Meta (Instagram · Threads · Facebook)</span><input id="cfgMeta" type="text" placeholder="장기 액세스 토큰" /></label>
+        <label class="field"><span>TikTok · YouTube</span><input id="cfgVideo" type="text" placeholder="앱 키 또는 채널 ID" /></label>
+        <p class="hint">지금은 저장만 하며, 실제 자동 발행은 2단계에서 서버 워커가 이어받습니다.</p>
+      </section>
+
+      <section class="sheet-section">
+        <h4>데이터</h4>
+        <div class="inline-actions">
+          <button class="btn btn-ghost btn-sm" id="settingsExportBtn" type="button">전체 JSON 내보내기</button>
+          <button class="btn btn-ghost btn-sm danger" id="settingsResetBtn" type="button">설정 초기화</button>
+        </div>
+        <p class="hint">큐·설정은 localStorage에 저장됩니다. 브라우저를 바꾸면 JSON으로 옮겨 주세요.</p>
+        <div class="stack-lines">
+          <div class="mode-line"><span>버전</span><strong id="appVersion">1.0.0</strong></div>
+          <div class="mode-line"><span>큐 항목</span><strong id="appQueueCount">0</strong></div>
+          <div class="mode-line"><span>AI 모드</span><strong id="appAiMode">프리뷰</strong></div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="sheet-foot">
+      <button class="btn btn-primary" id="saveSettingsBtn" value="save" type="submit">저장</button>
+    </footer>
+  </form>
+</dialog>
+
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>

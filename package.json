@@ -1,0 +1,15 @@
+{
+  "name": "261127-sns-autopilot",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "매일 1~24회, 9개 채널 SNS 자동화 스튜디오 (Cloudflare Pages)",
+  "scripts": {
+    "test": "node --test tests/",
+    "serve": "python3 -m http.server 4173 --directory public",
+    "deploy": "wrangler pages deploy public --project-name sns-autopilot"
+  },
+  "dependencies": {
+    "wrangler": "^4.168.0"
+  }
+}
