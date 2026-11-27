@@ -1,7 +1,7 @@
 {
   "name": "261127-sns-autopilot",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "description": "매일 1~24회, 9개 채널 SNS 자동화 스튜디오 (Cloudflare Pages)",
   "scripts": {

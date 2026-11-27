@@ -3,7 +3,7 @@
 
 export const APP = {
   name: 'SNS 오토파일럿',
-  version: '1.0.2',
+  version: '1.0.3',
   tagline: '매일 1회~24회 · 9개 채널 · 생성부터 발행 큐까지',
   storageKey: 'sns-autopilot-state-v1',
   site: 'https://sns-autopilot-bin.pages.dev',

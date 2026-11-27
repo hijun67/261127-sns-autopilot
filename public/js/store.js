@@ -22,10 +22,13 @@ export function mergeState(raw) {
   settings.mode = settings.mode === 'auto' ? 'auto' : 'semi';
   settings.theme = settings.theme === 'light' ? 'light' : 'dark';
   // 브랜드 표기: 비우거나 공백만 남겨도 기본값('코네스')으로 복원한다.
+  // 예전 기본값이었던 '한일 님'이 브라우저에 남아 있는 경우도 옛 기본값으로 보고 새 기본값으로 옮긴다.
+  const LEGACY_BRAND = '한일 님';
+  const trimmedBrand = typeof settings.brandName === 'string' ? settings.brandName.trim() : '';
   settings.brandName =
-    typeof settings.brandName === 'string' && settings.brandName.trim()
-      ? settings.brandName.trim().slice(0, 30)
-      : base.settings.brandName;
+    !trimmedBrand || trimmedBrand === LEGACY_BRAND
+      ? base.settings.brandName
+      : trimmedBrand.slice(0, 30);
 
   const connections = { ...base.connections };
   for (const ch of CHANNELS) {

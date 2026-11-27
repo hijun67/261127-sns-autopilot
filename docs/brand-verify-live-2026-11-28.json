@@ -1,0 +1,111 @@
+{
+  "base": "https://sns-autopilot-bin.pages.dev",
+  "checks": {
+    "default_brand": {
+      "ok": true,
+      "detail": {
+        "localStorage.brandName": null,
+        "brandInput": "코네스",
+        "version": "1.0.2"
+      }
+    },
+    "blank_restores_default": {
+      "ok": true,
+      "detail": {
+        "savedBlankValue": "   ",
+        "localStorage.brandName": "코네스",
+        "brandInput": "코네스"
+      }
+    },
+    "cardnews_bottom_brand_rendered": {
+      "ok": true,
+      "detail": {
+        "defaultBrand": "코네스",
+        "goalId": "affiliate",
+        "accent": "#fb923c",
+        "theme": "dark",
+        "total": 8,
+        "matchCones": 8,
+        "diffEmpty": [
+          [
+            0,
+            842
+          ],
+          [
+            1,
+            842
+          ],
+          [
+            2,
+            842
+          ],
+          [
+            3,
+            842
+          ],
+          [
+            4,
+            842
+          ],
+          [
+            5,
+            842
+          ],
+          [
+            6,
+            842
+          ],
+          [
+            7,
+            842
+          ]
+        ],
+        "diffOther": [
+          [
+            0,
+            1704
+          ],
+          [
+            1,
+            1704
+          ],
+          [
+            2,
+            1704
+          ],
+          [
+            3,
+            1704
+          ],
+          [
+            4,
+            1704
+          ],
+          [
+            5,
+            1704
+          ],
+          [
+            6,
+            1704
+          ],
+          [
+            7,
+            1704
+          ]
+        ],
+        "checked": 8,
+        "inkCones": 726,
+        "inkEmpty": 0,
+        "previewInk": 726
+      }
+    }
+  },
+  "app_version": "1.0.2",
+  "errors": [],
+  "png": {
+    "path": ".tmp/verify-brand/brand-cardnews-01.png",
+    "bytes": 1348696
+  },
+  "png_ok": true
+}

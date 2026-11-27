@@ -294,6 +294,8 @@ test('브랜드 표기 기본값은 코네스이고, 비워도 코네스로 복�
   assert.equal(mergeState({ settings: { brandName: '   ' } }).settings.brandName, '코네스');
   assert.equal(mergeState({ settings: { brandName: null } }).settings.brandName, '코네스');
   assert.equal(mergeState({}).settings.brandName, '코네스');
+  // 예전 기본값 '한일 님'이 저장돼 있던 브라우저도 새 기본값으로 옮긴다
+  assert.equal(mergeState({ settings: { brandName: '한일 님' } }).settings.brandName, '코네스');
   // 사용자가 직접 넣은 값은 그대로 유지(앞뒤 공백 제거, 30자 제한)
   assert.equal(mergeState({ settings: { brandName: '  머니큐브  ' } }).settings.brandName, '머니큐브');
   assert.equal(mergeState({ settings: { brandName: '가'.repeat(40) } }).settings.brandName.length, 30);
