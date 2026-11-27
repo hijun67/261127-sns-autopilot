@@ -110,7 +110,7 @@ function aiLabel() {
   if (p === 'preview') return { text: '프리뷰 템플릿', live: false };
   const key = state.settings.keys[p];
   if (!key) return { text: '프리뷰 템플릿', live: false };
-  return { text: `AI 연결 · ${API_PROVIDERS.find((x) => x.id === p)?.name || p}`, live: true };
+  return { text: `AI 모드 · ${API_PROVIDERS.find((x) => x.id === p)?.name || p}`, live: true };
 }
 
 function connectedChannels() {
@@ -966,9 +966,20 @@ function renderGoals() {
 /* 설정                                                                */
 /* ------------------------------------------------------------------ */
 
+function renderProviderOptions() {
+  const sel = $('#providerSelect');
+  const current = state.settings.provider;
+  sel.innerHTML = [
+    '<option value="preview">프리뷰 템플릿 (키 없이 테스트)</option>',
+    ...API_PROVIDERS.map((p) => `<option value="${p.id}">${p.name} · ${p.model}</option>`),
+  ].join('');
+  sel.value = API_PROVIDERS.some((p) => p.id === current) ? current : 'preview';
+}
+
 function openSettings() {
   const s = state.settings;
-  $('#providerSelect').value = s.provider;
+  renderProviderOptions();
+  $('#providerSelect').value = s.provider === 'preview' ? 'preview' : s.provider;
   $('#apiKeyInput').value = s.provider === 'preview' ? '' : s.keys[s.provider] || '';
   $('#brandInput').value = s.brandName || '';
   $('#webhookInput').value = s.webhook || '';
@@ -979,7 +990,7 @@ function openSettings() {
   $('#appVersion').textContent = APP.version;
   $('#appQueueCount').textContent = `${state.queue.length}개`;
   $('#appAiMode').textContent = aiLabel().text;
-  $('#keyStatus').textContent = aiLabel().live ? '키 저장됨 · AI 모드' : '프리뷰 템플릿 모드';
+  $('#keyStatus').textContent = aiLabel().live ? '키 저장됨 · 연결 테스트로 확인하세요' : '프리뷰 템플릿 모드';
   $('#settingsDialog').showModal();
 }
 
