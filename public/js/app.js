@@ -9,6 +9,7 @@ import {
   FREQUENCIES,
   TONES,
   API_PROVIDERS,
+  COUPANG_CATEGORIES,
   DISCLOSURE_TEXT,
   getChannel,
   getFormat,
@@ -16,6 +17,19 @@ import {
   getSource,
   defaultState,
 } from './data.js';
+import {
+  POOL_KINDS,
+  hasCoupangKeys,
+  hasTossKeys,
+  maskSecret,
+  formatPrice,
+  normalizePoolEntry,
+  pickFromPool,
+  poolForSource,
+  requestCoupangProduct,
+  requestNewspicArticles,
+} from './sourcehub.js';
+import { clampBodyLines } from './partner.js';
 import {
   generateContent,
   buildMultiChannelPack,
@@ -45,6 +59,8 @@ let activeView = 'dashboard';
 let activeTab = 'reels';
 let queueFilter = 'all';
 let multiPack = null;
+// 소스 자동 불러오기 상태 (화면 전용, 저장하지 않음)
+const autoState = { coupangItem: null, articles: [], poolItem: null, loading: '', error: '', info: '' };
 
 const VIEW_META = {
   dashboard: ['대시보드', '오늘의 발행 계획과 수익 목표를 한눈에 봅니다.'],
@@ -281,6 +297,7 @@ function renderSources() {
       persist();
       renderSources();
       renderSourceHint();
+      renderSourceAuto();
     });
   });
   renderSourceHint();
@@ -290,6 +307,250 @@ function renderSourceHint() {
   const src = getSource(state.sourceId);
   $('#sourceHint').textContent = src ? `💡 ${src.hint}` : '';
   if (src?.kind === 'affiliate') $('#disclosureToggle').checked = Boolean(state.settings.disclosure);
+}
+
+/* ------------------------------------------------------------------ */
+/* 소스 자동 수집 · 제휴 URL 풀                                          */
+/* ------------------------------------------------------------------ */
+
+function fillFromAuto({ topic, link }) {
+  if (topic) {
+    state.keyword = topic;
+    $('#keywordInput').value = topic;
+  }
+  if (link) {
+    state.link = link;
+    $('#linkInput').value = link;
+  }
+  persist();
+}
+
+function shortHost(url) {
+  try {
+    const u = new URL(url);
+    return `${u.hostname.replace(/^www\./, '')}${u.pathname === '/' ? '' : u.pathname}`.slice(0, 52);
+  } catch {
+    return String(url || '').slice(0, 52);
+  }
+}
+
+function coupangCardHtml(item) {
+  if (!item) return '';
+  const meta = [
+    formatPrice(item.price),
+    item.isRocket ? '🚀 로켓배송' : '',
+    item.isFreeShipping ? '무료배송' : '',
+    item.category,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return `<div class="auto-card" data-coupang-card>
+    ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="" loading="lazy" />` : '<span class="auto-thumb" aria-hidden="true">🛒</span>'}
+    <div class="auto-card-body">
+      <strong>${escapeHtml(item.title)}</strong>
+      <span class="auto-price">${escapeHtml(meta)}</span>
+      <span class="auto-link">${escapeHtml(shortHost(item.landingUrl))}</span>
+    </div>
+  </div>`;
+}
+
+function sourceAutoMarkup(src) {
+  const tag = (text, tone = '') => `<span class="small-tag ${tone}">${escapeHtml(text)}</span>`;
+  if (src.auto === 'coupang') {
+    const saved = hasCoupangKeys(state.settings);
+    const creds = state.settings.coupang;
+    const options = [
+      `<option value="0" ${Number(autoState.categoryId || 0) === 0 ? 'selected' : ''}>🎲 카테고리 랜덤 (19개)</option>`,
+      ...COUPANG_CATEGORIES.map(
+        (c) => `<option value="${c.id}" ${Number(autoState.categoryId) === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
+      ),
+    ].join('');
+    return `<div class="auto-head">
+        <span class="auto-title">🎲 소스 자동 불러오기</span>
+        ${saved ? tag(`키 등록됨 · ${maskSecret(creds.accessKey)}`, 'ok') : tag('키 미등록', 'warn')}
+      </div>
+      <div class="auto-row">
+        <select id="coupangCategory" aria-label="쿠팡 카테고리">${options}</select>
+        <button class="btn btn-primary btn-sm" id="autoCoupangBtn" type="button">🎲 쿠팡 상품 뽑기</button>
+      </div>
+      ${coupangCardHtml(autoState.coupangItem)}
+      <p class="hint">${
+        saved
+          ? '카테고리 베스트(또는 골드박스)에서 상품 1개를 골라 제휴 딥링크까지 발급합니다.'
+          : '쿠팡파트너스 Access Key·Secret Key를 설정에 넣으면 상품과 제휴 링크를 바로 채웁니다.'
+      }</p>
+      ${autoState.error ? `<p class="hint warn-line">⚠️ ${escapeHtml(autoState.error)}</p>` : ''}`;
+  }
+
+  if (src.auto === 'newspic') {
+    const rssOn = Boolean(state.settings.newspicRss);
+    const list = autoState.articles.length
+      ? `<ul class="auto-list">${autoState.articles
+          .map(
+            (a, i) => `<li><button class="auto-article" type="button" data-article="${i}">
+              <span class="aa-title">${escapeHtml(a.title)}</span>
+              <span class="aa-meta">${escapeHtml(a.from === 'rss' ? '내 RSS' : '핫기사')}${a.summary ? ` · ${escapeHtml(a.summary)}` : ''}</span>
+            </button></li>`
+          )
+          .join('')}</ul>`
+      : '';
+    return `<div class="auto-head">
+        <span class="auto-title">📰 소스 자동 불러오기</span>
+        ${rssOn ? tag('맞춤 RSS 연결', 'ok') : tag('RSS 미등록', '')}
+      </div>
+      <div class="auto-row">
+        <button class="btn btn-primary btn-sm" id="autoNewspicBtn" type="button">📰 핫기사 불러오기</button>
+        <span class="hint" style="margin:0">인기기사순 · 최대 8건</span>
+      </div>
+      ${list}
+      ${
+        autoState.info
+          ? `<p class="hint">ℹ️ ${escapeHtml(autoState.info)}</p>`
+          : '<p class="hint">기사를 고르면 제목과 링크가 위 입력칸에 자동으로 들어갑니다.</p>'
+      }
+      ${autoState.error ? `<p class="hint warn-line">⚠️ ${escapeHtml(autoState.error)}</p>` : ''}`;
+  }
+
+  if (src.auto === 'pool') {
+    const list = poolForSource(state.settings.affiliatePool, src.id);
+    const toss = src.id === 'toss';
+    return `<div class="auto-head">
+        <span class="auto-title">🎲 제휴 URL 풀</span>
+        ${tag(`${list.length}개 등록`, list.length ? 'ok' : 'warn')}
+      </div>
+      <div class="auto-row">
+        <button class="btn btn-primary btn-sm" id="poolDrawBtn" type="button">🎲 랜덤 뽑기</button>
+        <button class="btn btn-ghost btn-sm" id="poolOpenSettings" type="button">풀 관리</button>
+      </div>
+      ${
+        autoState.poolItem
+          ? `<div class="auto-card pool-picked">
+              <div class="auto-card-body">
+                <strong>${escapeHtml(autoState.poolItem.name)}</strong>
+                <span class="auto-link">${escapeHtml(shortHost(autoState.poolItem.url))}</span>
+              </div>
+            </div>`
+          : `<p class="hint">${list.length ? '뽑기를 누르면 상품명·제휴 링크가 자동 입력됩니다.' : '설정 → 제휴 URL 풀에 상품 링크를 먼저 등록해 주세요.'}</p>`
+      }
+      ${toss ? `<p class="hint">${hasTossKeys(state.settings) ? '토스 키 등록됨' : '토스 키 미등록'} · 토스 Open API는 고정 출발지 IP 등록이 필요합니다.</p>` : ''}
+      ${autoState.error ? `<p class="hint warn-line">⚠️ ${escapeHtml(autoState.error)}</p>` : ''}`;
+  }
+
+  return '';
+}
+
+function renderSourceAuto() {
+  const box = $('#sourceAuto');
+  if (!box) return;
+  const src = getSource(state.sourceId);
+  if (!src || !src.auto || src.auto === 'none') {
+    box.innerHTML = '';
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  box.innerHTML = sourceAutoMarkup(src);
+  const btn = $('#autoCoupangBtn');
+  if (btn) btn.addEventListener('click', loadCoupangProduct);
+  const cat = $('#coupangCategory');
+  if (cat) cat.addEventListener('change', () => { autoState.categoryId = Number(cat.value) || 0; });
+  const nb = $('#autoNewspicBtn');
+  if (nb) nb.addEventListener('click', loadNewspicArticles);
+  $$('[data-article]', box).forEach((el) =>
+    el.addEventListener('click', () => {
+      const article = autoState.articles[Number(el.dataset.article)];
+      if (!article) return;
+      fillFromAuto({ topic: article.title, link: article.link });
+      toast('기사 제목과 링크를 채웠습니다.', 'ok');
+    })
+  );
+  const pb = $('#poolDrawBtn');
+  if (pb) pb.addEventListener('click', drawFromPool);
+  const ps = $('#poolOpenSettings');
+  if (ps) ps.addEventListener('click', openSettings);
+}
+
+async function loadCoupangProduct() {
+  if (!hasCoupangKeys(state.settings)) {
+    toast('쿠팡파트너스 키를 먼저 입력해 주세요. (설정 → 소스 · 제휴 API)', 'warn');
+    openSettings();
+    return;
+  }
+  const btn = $('#autoCoupangBtn');
+  const label = btn?.textContent;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '상품 고르는 중…';
+  }
+  autoState.error = '';
+  try {
+    const data = await requestCoupangProduct({
+      creds: state.settings.coupang,
+      categoryId: Number(autoState.categoryId) || 0,
+      limit: 20,
+    });
+    autoState.coupangItem = data.item;
+    fillFromAuto({ topic: data.item.title, link: data.item.landingUrl });
+    renderSourceAuto();
+    toast(
+      data.deeplinkOk ? '쿠팡 상품과 제휴 딥링크를 불러왔습니다.' : '상품을 불러왔습니다. (딥링크 실패 → 원본 URL 사용)',
+      data.deeplinkOk ? 'ok' : 'warn'
+    );
+  } catch (err) {
+    autoState.error = err.message;
+    renderSourceAuto();
+    toast(`쿠팡 자동 불러오기 실패: ${err.message}`, 'warn');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = label || '🎲 쿠팡 상품 뽑기';
+    }
+  }
+}
+
+async function loadNewspicArticles() {
+  const btn = $('#autoNewspicBtn');
+  const label = btn?.textContent;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '기사 가져오는 중…';
+  }
+  autoState.error = '';
+  autoState.info = '';
+  try {
+    const data = await requestNewspicArticles({ rss: state.settings.newspicRss, limit: 8 });
+    autoState.articles = data.articles || [];
+    const notes = [];
+    if (data.rssError) notes.push(`RSS: ${data.rssError}`);
+    if (Array.isArray(data.warnings) && data.warnings.length) notes.push(data.warnings.join(' / '));
+    autoState.info = notes.join(' · ');
+    renderSourceAuto();
+    toast(
+      autoState.articles.length ? `기사 ${autoState.articles.length}건을 불러왔습니다.` : '기사를 가져오지 못했습니다. RSS를 설정해 보세요.',
+      autoState.articles.length ? 'ok' : 'warn'
+    );
+  } catch (err) {
+    autoState.error = err.message;
+    renderSourceAuto();
+    toast(`뉴스픽 자동 불러오기 실패: ${err.message}`, 'warn');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = label || '📰 핫기사 불러오기';
+    }
+  }
+}
+
+function drawFromPool() {
+  const entry = pickFromPool(state.settings.affiliatePool, { sourceId: state.sourceId });
+  if (!entry) {
+    toast('제휴 URL 풀이 비어 있습니다. 설정에서 상품 링크를 추가해 주세요.', 'warn');
+    return;
+  }
+  autoState.poolItem = entry;
+  fillFromAuto({ topic: entry.name, link: entry.url });
+  renderSourceAuto();
+  toast(`🎲 ${entry.name} 을(를) 골랐습니다.`, 'ok');
 }
 
 function renderGoalPicker() {
@@ -388,6 +649,7 @@ function renderStudio() {
   $('#disclosureToggle').checked = Boolean(state.settings.disclosure);
   $('#keywordInput').value = state.keyword || '';
   $('#linkInput').value = state.link || '';
+  renderSourceAuto();
   renderStudioSummary();
   renderResult();
 }
@@ -397,6 +659,9 @@ function renderStudio() {
 /* ------------------------------------------------------------------ */
 
 function buildPrompt(preview, opts) {
+  const partnerSchema = preview?.partner
+    ? ',\n  "partner": {"body":"후킹 2~3줄 본문(링크 금지)","comment":"연결 댓글: 제휴 링크 + 댓글 유도"}'
+    : '';
   const schema = `{
   "title": "제목",
   "hook": "첫 문장 훅",
@@ -404,8 +669,11 @@ function buildPrompt(preview, opts) {
   "shorts": {"hook3s":"3초 훅","scenes":[{"time":"0-3초","scene":"훅","visual":"화면","narration":"나레이션","caption":"자막"}],"caption":"캡션","thumbnailText":"썸네일 문구"},
   "cardnews": {"title":"표지 제목","slides":[{"kicker":"라벨","headline":"한 줄","body":"설명"}]},
   "blog": {"title":"SEO 제목","metaDescription":"메타 설명","html":"<p>...</p>","faq":[{"q":"질문","a":"답"}]},
-  "sns": {"x":["트윗1","트윗2"],"threads":"스레드 본문","facebook":"페이스북 본문"}
+  "sns": {"x":["트윗1","트윗2"],"threads":"스레드 본문","facebook":"페이스북 본문"}${partnerSchema}
 }`;
+  const partnerRules = preview?.partner
+    ? `\n- 이 소스는 뉴스픽 파트너스입니다. partner.body는 호기심을 자극하는 후킹 2~3줄로 쓰고 **URL을 절대 넣지 마세요**. partner.comment에는 제휴 링크(${opts.link || '없음'})와 댓글 유도 문구를 넣으세요. sns.x·threads·facebook에도 링크 없이 body만 넣으세요.`
+    : '';
   return `당신은 한국어 SNS 콘텐츠 편집자입니다. 아래 조건으로 실제 발행 가능한 콘텐츠를 JSON 하나로만 출력하세요.
 - 주제: ${opts.topic}
 - 수익 목표: ${getGoal(opts.goalId)?.name} (${getGoal(opts.goalId)?.hook})
@@ -415,7 +683,7 @@ function buildPrompt(preview, opts) {
 - 링크: ${opts.link || '없음'}
 - 카드뉴스는 최대 8장, 각 슬라이드는 headline 20자 내외·body 60자 내외.
 - X 트윗은 각각 280자 이내. 과장·허위 수치 금지. 사실 확인이 안 된 숫자는 쓰지 마세요.
-- 공정위 문구 ${opts.disclosure ? '포함' : '미포함'}.
+- 공정위 문구 ${opts.disclosure ? '포함' : '미포함'}.${partnerRules}
 - JSON 외 다른 텍스트, 코드펜스 금지.
 스키마: ${schema}`;
 }
@@ -477,6 +745,29 @@ function mergeAI(preview, data) {
   if (data.sns) {
     merged.sns = { ...merged.sns, ...data.sns };
     if (Array.isArray(data.sns.x)) merged.sns.x = data.sns.x.map((t) => truncateChars(String(t), 280)).slice(0, 8);
+  }
+  if (merged.partner && data.partner) {
+    const body = clampBodyLines(String(data.partner.body || ''), { min: 2, max: 3 });
+    const comment = String(data.partner.comment || '').trim().slice(0, 600);
+    if (body) {
+      merged.partner = {
+        ...merged.partner,
+        body,
+        lines: body.split('\n'),
+        comment: comment || merged.partner.comment,
+      };
+      merged.meta.comment = merged.partner.comment;
+      merged.sns = {
+        ...merged.sns,
+        single: body,
+        x: [body],
+        threads: body,
+        facebook: body,
+        partnerBody: body,
+        partnerComment: merged.partner.comment,
+      };
+      merged.hook = body.split('\n')[0];
+    }
   }
   merged.meta.mode = 'ai';
   return merged;
@@ -608,9 +899,21 @@ function renderResult() {
     current.meta.goalName,
     current.meta.sourceName,
     current.meta.apiSupported ? 'API 자동' : '복사 발행',
+    current.partner ? '본문+댓글 분리' : '',
   ]
+    .filter(Boolean)
     .map((t, i) => `<span class="tag ${i === 0 ? 'hot' : ''}">${escapeHtml(t)}</span>`)
     .join('');
+
+  // 뉴스픽 파트너스: 본문(링크 없음)과 연결 댓글(제휴 링크)을 분리해서 보여 줍니다.
+  const partnerBox = $('#resultPartner');
+  if (partnerBox) {
+    partnerBox.hidden = !current.partner;
+    if (current.partner) {
+      $('#partnerBody').textContent = current.partner.body;
+      $('#partnerComment').textContent = current.partner.comment;
+    }
+  }
 
   const tabs = [
     ['reels', `쇼츠·릴스`],
@@ -654,6 +957,15 @@ function renderResult() {
       <div class="mini-list"><li>${escapeHtml(b.metaDescription)}</li>${(b.outline || []).map((o) => `<li><strong style="color:var(--text)">${escapeHtml(o.h2)}</strong> — ${escapeHtml(o.points.join(' / '))}</li>`).join('')}</div>
       <div class="copy-row" style="margin-top:10px"><span class="muted">본문 HTML (${b.wordCount}자)</span><button class="btn btn-ghost btn-sm" data-copy="blogtext">텍스트 복사</button></div>
       <div class="copy-area">${escapeHtml(b.html)}</div>`;
+  } else if (current.partner) {
+    const p = current.partner;
+    panels.innerHTML = `<div class="script-block">
+      <div class="copy-row"><strong style="font-size:12.5px">본문 · 후킹 ${p.lines?.length || 2}줄 (링크 없음)</strong><button class="btn btn-ghost btn-sm" data-copy="partnerBody">본문 복사</button></div>
+      <div class="copy-area">${escapeHtml(p.body)}</div>
+      <div class="copy-row" style="margin-top:10px"><strong style="font-size:12.5px">연결 댓글 · 제휴 링크</strong><button class="btn btn-ghost btn-sm" data-copy="partnerComment">연결 댓글 복사</button></div>
+      <div class="copy-area">${escapeHtml(p.comment)}</div>
+      <p class="hint">본문을 먼저 게시하고, 이어서 첫 댓글로 연결 댓글을 붙여넣으세요.${p.missingLink ? ' ⚠️ 링크가 비어 있어 댓글에 제휴 링크가 없습니다. 위 링크 입력칸을 채워 주세요.' : ''}</p>
+    </div>`;
   } else {
     const s = current.sns;
     panels.innerHTML = `<div class="copy-row"><strong style="font-size:12.5px">X 스레드</strong><button class="btn btn-ghost btn-sm" data-copy="xthread">스레드 복사</button></div>
@@ -673,6 +985,8 @@ function renderResult() {
         xthread: current.sns.x.join('\n\n'),
         threads: current.sns.threads,
         facebook: current.sns.facebook,
+        partnerBody: current.partner?.body || '',
+        partnerComment: current.partner?.comment || '',
       };
       copyText(map[btn.dataset.copy]);
     });
@@ -737,6 +1051,7 @@ function drawCards() {
 
 function queueItemText(item) {
   const c = item.content;
+  if (item.partnerBody) return item.partnerBody;
   if (!c) return item.title;
   if (item.formatId === 'blog') return c.blog?.text || c.blog?.html || '';
   if (item.formatId === 'cardnews') return c.cardnews?.caption || '';
@@ -765,6 +1080,7 @@ function renderQueue() {
       if (q.status === 'pending') actions.push(`<button class="btn btn-ghost btn-sm" data-act="approved" data-id="${q.id}">승인</button>`);
       if (q.status === 'approved') actions.push(`<button class="btn btn-ghost btn-sm" data-act="published" data-id="${q.id}">발행 처리</button>`);
       actions.push(`<button class="btn btn-ghost btn-sm" data-copy-id="${q.id}">복사</button>`);
+      if (q.comment) actions.push(`<button class="btn btn-ghost btn-sm" data-copy-comment="${q.id}">댓글 복사</button>`);
       if (q.status === 'pending' || q.status === 'approved') actions.push(`<button class="btn btn-ghost btn-sm" data-act="skipped" data-id="${q.id}">건너뛰기</button>`);
       if (q.status === 'skipped') actions.push(`<button class="btn btn-ghost btn-sm" data-act="pending" data-id="${q.id}">되돌리기</button>`);
       actions.push(`<button class="btn btn-ghost btn-sm" data-open="${q.id}">보기</button>`);
@@ -778,6 +1094,7 @@ function renderQueue() {
             <span class="tag">${escapeHtml(q.formatName)}</span>
             <span class="tag">${escapeHtml(q.goalName)}</span>
             ${q.apiSupported ? '<span class="tag">API</span>' : '<span class="tag">복사 발행</span>'}
+            ${q.comment ? '<span class="tag hot">본문+댓글</span>' : ''}
           </span>
         </div>
         <div class="q-actions">${actions.join('')}</div>
@@ -799,6 +1116,13 @@ function renderQueue() {
       const item = state.queue.find((q) => q.id === btn.dataset.copyId);
       if (!item) return;
       copyText(queueItemText(item));
+    })
+  );
+  $$('[data-copy-comment]', list).forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const item = state.queue.find((q) => q.id === btn.dataset.copyComment);
+      if (!item) return;
+      copyText(item.comment || item.content?.partner?.comment || '');
     })
   );
   $$('[data-open]', list).forEach((btn) =>
@@ -987,6 +1311,59 @@ function renderProviderOptions() {
   sel.value = API_PROVIDERS.some((p) => p.id === current) ? current : 'preview';
 }
 
+function renderPoolList() {
+  const list = $('#poolList');
+  if (!list) return;
+  const pool = state.settings.affiliatePool || [];
+  if (!pool.length) {
+    list.innerHTML = '<li class="pool-empty">아직 등록된 제휴 URL이 없습니다.</li>';
+    return;
+  }
+  list.innerHTML = pool
+    .map(
+      (p) => `<li class="pool-row">
+        <span class="pool-kind">${escapeHtml(POOL_KINDS.find((k) => k.id === p.kind)?.name || '기타')}</span>
+        <span class="pool-name">${escapeHtml(p.name)}</span>
+        <span class="pool-url muted">${escapeHtml(shortHost(p.url))}</span>
+        <button class="btn btn-ghost btn-sm danger" type="button" data-pool-del="${p.id}">삭제</button>
+      </li>`
+    )
+    .join('');
+  $$('[data-pool-del]', list).forEach((btn) =>
+    btn.addEventListener('click', () => {
+      state.settings.affiliatePool = state.settings.affiliatePool.filter((p) => p.id !== btn.dataset.poolDel);
+      persist();
+      renderPoolList();
+      renderSourceAuto();
+      toast('제휴 URL 풀에서 삭제했습니다.');
+    })
+  );
+}
+
+function renderPoolKinds() {
+  const sel = $('#poolKind');
+  if (!sel) return;
+  sel.innerHTML = POOL_KINDS.map((k) => `<option value="${k.id}">${escapeHtml(k.name)}</option>`).join('');
+  sel.value = POOL_KINDS.some((k) => k.id === state.sourceId) ? state.sourceId : 'brandconnect';
+}
+
+function addPoolEntry() {
+  const entry = normalizePoolEntry({
+    name: $('#poolName').value,
+    url: $('#poolUrl').value,
+    kind: $('#poolKind').value,
+  });
+  if (!entry) return toast('http(s) 주소로 된 제휴 URL을 입력해 주세요.', 'warn');
+  if (state.settings.affiliatePool.some((p) => p.url === entry.url)) return toast('이미 등록된 URL입니다.', 'warn');
+  state.settings.affiliatePool = [...state.settings.affiliatePool, entry].slice(0, 100);
+  persist();
+  $('#poolName').value = '';
+  $('#poolUrl').value = '';
+  renderPoolList();
+  renderSourceAuto();
+  toast(`‘${entry.name}’을(를) 제휴 URL 풀에 추가했습니다.`, 'ok');
+}
+
 function openSettings() {
   const s = state.settings;
   renderProviderOptions();
@@ -998,6 +1375,34 @@ function openSettings() {
   $('#cfgX').value = s.integrations?.x || '';
   $('#cfgMeta').value = s.integrations?.meta || '';
   $('#cfgVideo').value = s.integrations?.video || '';
+
+  // 소스 · 제휴 API — 저장된 키는 마스킹된 placeholder로만 보여 주고, 입력칸은 항상 비웁니다.
+  const coupangOk = hasCoupangKeys(s);
+  $('#coupangAccessKey').value = '';
+  $('#coupangSecretKey').value = '';
+  $('#coupangAccessKey').placeholder = s.coupang?.accessKey ? `저장됨: ${maskSecret(s.coupang.accessKey)}` : '쿠팡파트너스 Access Key';
+  $('#coupangSecretKey').placeholder = s.coupang?.secretKey ? `저장됨: ${maskSecret(s.coupang.secretKey)}` : 'Secret Key';
+  $('#coupangSubId').value = s.coupang?.subId || '';
+  $('#coupangKeyState').textContent = coupangOk ? '등록됨' : '미등록';
+  $('#coupangKeyState').className = `small-tag ${coupangOk ? 'ok' : 'warn'}`;
+  $('#coupangMaskHint').textContent = coupangOk
+    ? `저장된 Access Key: ${maskSecret(s.coupang.accessKey)} · Secret Key: ${maskSecret(s.coupang.secretKey)}`
+    : '저장된 키가 없습니다. 키는 이 브라우저에만 저장됩니다.';
+
+  const tossOk = hasTossKeys(s);
+  $('#tossAccessKey').value = '';
+  $('#tossSecretKey').value = '';
+  $('#tossAccessKey').placeholder = s.toss?.accessKey ? `저장됨: ${maskSecret(s.toss.accessKey)}` : '토스 쉐어링크 Access Key';
+  $('#tossSecretKey').placeholder = s.toss?.secretKey ? `저장됨: ${maskSecret(s.toss.secretKey)}` : 'Secret Key';
+  $('#tossPublisherId').value = s.toss?.publisherId || '';
+  $('#tossKeyState').textContent = tossOk ? '등록됨' : '미등록';
+  $('#tossKeyState').className = `small-tag ${tossOk ? 'ok' : 'warn'}`;
+
+  $('#newspicRssInput').value = s.newspicRss || '';
+  $('#newspicRssStatus').textContent = s.newspicRss ? 'RSS 저장됨' : '핫기사는 RSS 없이도 불러옵니다.';
+  renderPoolKinds();
+  renderPoolList();
+
   $('#appVersion').textContent = APP.version;
   $('#appQueueCount').textContent = `${state.queue.length}개`;
   $('#appAiMode').textContent = aiLabel().text;
@@ -1021,9 +1426,22 @@ function saveSettings() {
     meta: $('#cfgMeta').value.trim(),
     video: $('#cfgVideo').value.trim(),
   };
+  // 소스 · 제휴 API: 빈 입력칸은 '기존 키 유지'로 봅니다(초기화 버튼으로만 삭제).
+  state.settings.coupang = {
+    accessKey: $('#coupangAccessKey').value.trim() || state.settings.coupang.accessKey,
+    secretKey: $('#coupangSecretKey').value.trim() || state.settings.coupang.secretKey,
+    subId: $('#coupangSubId').value.trim().slice(0, 40),
+  };
+  state.settings.toss = {
+    accessKey: $('#tossAccessKey').value.trim() || state.settings.toss.accessKey,
+    secretKey: $('#tossSecretKey').value.trim() || state.settings.toss.secretKey,
+    publisherId: $('#tossPublisherId').value.trim().slice(0, 60),
+  };
+  state.settings.newspicRss = $('#newspicRssInput').value.trim().slice(0, 600);
   persist();
   renderDashboard();
   renderStudioSummary();
+  renderSourceAuto();
   toast('설정을 저장했습니다.', 'ok');
 }
 
@@ -1163,9 +1581,53 @@ function bind() {
   });
 
   $('#openCardsBtn').addEventListener('click', () => setView('cardnews'));
+  $('#copyBodyBtn').addEventListener('click', () => current?.partner && copyText(current.partner.body));
+  $('#copyCommentBtn').addEventListener('click', () => current?.partner && copyText(current.partner.comment));
+  $('#poolAddBtn').addEventListener('click', addPoolEntry);
+  $('#poolUrl').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addPoolEntry();
+    }
+  });
+  $('#clearCoupangKeys').addEventListener('click', (e) => {
+    e.preventDefault();
+    if (!window.confirm('저장된 쿠팡파트너스 키를 지울까요?')) return;
+    state.settings.coupang = { accessKey: '', secretKey: '', subId: state.settings.coupang.subId };
+    persist();
+    openSettings();
+    renderSourceAuto();
+    toast('쿠팡 키를 초기화했습니다.', 'ok');
+  });
+  $('#testNewspicBtn').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const status = $('#newspicRssStatus');
+    status.textContent = '확인 중…';
+    try {
+      const data = await requestNewspicArticles({ rss: $('#newspicRssInput').value.trim(), limit: 5 });
+      const parts = [`핫기사 ${data.hot?.length || 0}건`];
+      if (data.rssConfigured) parts.push(`RSS ${data.rss?.length || 0}건`);
+      if (data.rssError) parts.push(`RSS 오류: ${data.rssError}`);
+      status.textContent = parts.join(' · ');
+      toast(parts.join(' · '), data.ok ? 'ok' : 'warn');
+    } catch (err) {
+      status.textContent = `실패: ${err.message}`;
+      toast(`확인 실패: ${err.message}`, 'warn');
+    }
+  });
   $('#copyAllBtn').addEventListener('click', () => {
     if (!current) return;
-    const text = [current.title, current.hook, current.blog.text, current.sns.threads, current.disclosure || ''].join('\n\n');
+    const text = [
+      current.title,
+      current.hook,
+      current.partner?.body || '',
+      current.partner ? `[연결 댓글]\n${current.partner.comment}` : '',
+      current.blog.text,
+      current.sns.threads,
+      current.disclosure || '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
     copyText(text);
   });
 

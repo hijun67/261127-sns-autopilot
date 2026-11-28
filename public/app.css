@@ -709,3 +709,92 @@ html[data-theme="light"] .hero-card {
   background: rgba(124, 140, 255, 0.16); color: var(--accent);
 }
 .guide-steps li strong { color: var(--text); font-weight: 600; }
+
+/* ------------------------------- 소스 자동 수집 ------------------------------- */
+.source-auto {
+  display: flex; flex-direction: column; gap: 9px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  background: linear-gradient(135deg, rgba(124, 140, 255, 0.08), transparent 70%), var(--surface-2);
+}
+.source-auto[hidden] { display: none; }
+.auto-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.auto-title { font-size: 12px; font-weight: 700; color: var(--text); }
+.auto-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.auto-row select {
+  flex: 1 1 150px; min-width: 0;
+  background: var(--input-bg); border: 1px solid var(--border); border-radius: 9px;
+  padding: 8px 10px; font-size: 12.5px; color: var(--text);
+}
+.auto-row .btn { flex: 0 0 auto; }
+.small-tag.ok { border-color: rgba(52, 211, 153, 0.4); color: var(--ok); }
+.small-tag.warn { border-color: rgba(251, 191, 36, 0.35); color: var(--warn); }
+.warn-line { color: var(--warn); }
+.auto-card {
+  display: flex; gap: 10px; align-items: flex-start;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface); padding: 9px;
+  min-width: 0;
+}
+.auto-card img, .auto-thumb {
+  flex: 0 0 56px; width: 56px; height: 56px; border-radius: 8px; object-fit: cover;
+  background: var(--surface-3); display: grid; place-items: center; font-size: 20px;
+}
+.auto-card-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.auto-card-body strong { font-size: 12.5px; line-height: 1.4; overflow-wrap: anywhere; }
+.auto-price { font-size: 11.5px; color: var(--accent-2); font-weight: 600; }
+.auto-link { font-size: 10.5px; color: var(--text-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pool-picked { background: rgba(124, 140, 255, 0.09); }
+.auto-list { display: flex; flex-direction: column; gap: 4px; max-height: 232px; overflow-y: auto; }
+.auto-article {
+  display: flex; flex-direction: column; gap: 2px;
+  width: 100%; text-align: left;
+  border: 1px solid var(--border); border-radius: 9px;
+  background: var(--surface); padding: 8px 10px; color: var(--text-soft);
+}
+.auto-article:hover { border-color: rgba(124, 140, 255, 0.5); color: var(--text); }
+.aa-title { font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.aa-meta { font-size: 10.5px; color: var(--text-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+
+/* 뉴스픽 파트너스 — 본문 / 연결 댓글 분리 */
+.partner-block {
+  display: flex; flex-direction: column; gap: 10px;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.1), transparent 65%), var(--surface-2);
+  padding: 11px 12px;
+}
+.partner-block[hidden] { display: none !important; }
+.partner-part { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.partner-part strong { font-size: 12px; }
+.partner-part .copy-area { max-height: 180px; }
+
+/* 설정 — 소스 · 제휴 API */
+.sheet-wide { grid-column: 1 / -1; }
+.key-block { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); border-radius: 11px; padding: 11px; background: var(--surface-2); }
+.key-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.key-head strong { font-size: 12.5px; }
+.key-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+.notice-line { margin-top: 0; }
+.pool-list { display: flex; flex-direction: column; gap: 5px; max-height: 210px; overflow-y: auto; }
+.pool-row {
+  display: grid; grid-template-columns: 108px minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center; gap: 8px;
+  padding: 7px 9px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2);
+  font-size: 12px;
+}
+.pool-kind { font-size: 10.5px; color: var(--accent-2); }
+.pool-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pool-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pool-empty { font-size: 12px; color: var(--text-mute); padding: 8px 2px; }
+.pool-add { display: grid; grid-template-columns: 1fr 1.3fr 118px auto; gap: 8px; align-items: end; margin-top: 8px; }
+.pool-add .btn { height: 38px; }
+
+@media (max-width: 720px) {
+  .pool-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 3px; }
+  .pool-url { grid-column: 1; }
+  .pool-add { grid-template-columns: minmax(0, 1fr); }
+  .auto-row select { flex: 1 1 100%; }
+  .auto-row .btn { flex: 1 1 auto; }
+}

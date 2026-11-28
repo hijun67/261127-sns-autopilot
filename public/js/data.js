@@ -3,7 +3,7 @@
 
 export const APP = {
   name: 'SNS 오토파일럿',
-  version: '1.0.3',
+  version: '1.1.0',
   tagline: '매일 1회~24회 · 9개 채널 · 생성부터 발행 큐까지',
   storageKey: 'sns-autopilot-state-v1',
   site: 'https://sns-autopilot-bin.pages.dev',
@@ -281,7 +281,7 @@ export const GOALS = [
   },
 ];
 
-/** 소스 & 제휴 허브 */
+/** 소스 & 제휴 허브 — auto 값이 스튜디오의 자동 불러오기 방식을 정합니다. */
 export const SOURCES = [
   {
     id: 'newspic-partners',
@@ -289,9 +289,12 @@ export const SOURCES = [
     icon: '📰',
     kind: 'traffic',
     disclosure: false,
+    auto: 'newspic',
+    partnerFormat: true,
     placeholder: '뉴스픽 기사 제목 또는 링크',
-    linkBase: 'https://news.nate.com/',
-    hint: '조회수 정산 · 고수익 콘텐츠 20건 추적 파라미터 사용',
+    linkBase: 'https://www.newspic.kr/',
+    autoLabel: '📰 뉴스픽 핫기사 불러오기',
+    hint: '인기기사순으로 후킹 2~3줄 본문 + 제휴 링크 연결 댓글을 만듭니다',
     goals: ['newspic', 'audience', 'shortform'],
   },
   {
@@ -300,9 +303,11 @@ export const SOURCES = [
     icon: '🛒',
     kind: 'affiliate',
     disclosure: true,
+    auto: 'coupang',
     placeholder: '상품명 또는 파트너스 링크',
     linkBase: 'https://link.coupang.com/',
-    hint: '대가성 문구 필수 · 최저가보다 사용 후기 각도가 전환에 유리',
+    autoLabel: '🎲 쿠팡 상품 자동 불러오기',
+    hint: '상품 랜덤 선택 → 제휴 딥링크 자동 발급 · 대가성 문구 필수',
     goals: ['affiliate', 'brand'],
   },
   {
@@ -311,9 +316,11 @@ export const SOURCES = [
     icon: '🟩',
     kind: 'affiliate',
     disclosure: true,
+    auto: 'pool',
     placeholder: '브랜드 · 상품명',
     linkBase: 'https://brandconnect.naver.com/',
-    hint: '리뷰형 카드뉴스와 궁합이 좋습니다',
+    autoLabel: '🎲 제휴 URL 풀에서 랜덤 뽑기',
+    hint: '리뷰형 카드뉴스와 궁합이 좋습니다 · URL 풀에 상품을 등록해 두세요',
     goals: ['affiliate', 'brand'],
   },
   {
@@ -322,9 +329,11 @@ export const SOURCES = [
     icon: '💙',
     kind: 'affiliate',
     disclosure: true,
+    auto: 'pool',
     placeholder: '금융 상품 · 혜택명',
     linkBase: 'https://toss.im/',
-    hint: '조건·혜택을 숫자로 먼저 보여주기',
+    autoLabel: '🎲 제휴 URL 풀에서 랜덤 뽑기',
+    hint: '조건·혜택을 숫자로 먼저 보여주기 · 쉐어링크 API는 고정 IP 등록 필요',
     goals: ['affiliate', 'event'],
   },
   {
@@ -333,6 +342,7 @@ export const SOURCES = [
     icon: '✍️',
     kind: 'keyword',
     disclosure: false,
+    auto: 'none',
     placeholder: '키워드 또는 주제 (예: 연말정산 환급)',
     linkBase: '',
     hint: '키워드만 넣으면 4종 포맷을 한 번에 만듭니다',
@@ -344,8 +354,10 @@ export const SOURCES = [
     icon: '🌐',
     kind: 'traffic',
     disclosure: false,
+    auto: 'newspic',
     placeholder: '뉴스픽 이슈 링크',
     linkBase: 'https://newspic.kr/',
+    autoLabel: '📰 뉴스픽 핫기사 불러오기',
     hint: '이슈 요약 → 원문 유도',
     goals: ['newspic', 'naver', 'adsense'],
   },
@@ -355,6 +367,7 @@ export const SOURCES = [
     icon: '🔗',
     kind: 'site',
     disclosure: false,
+    auto: 'none',
     placeholder: 'https://cones.info 또는 https://cones.asia',
     linkBase: 'https://cones.info/',
     hint: '애드센스·체류 수익으로 바로 연결',
@@ -378,6 +391,29 @@ export const FREQUENCIES = [
     label: '매일 24회',
     times: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`),
   },
+];
+
+/** 쿠팡 카테고리 베스트 19개 — 서버 함수(functions/api/sources/_lib.js)와 같은 목록이어야 합니다. */
+export const COUPANG_CATEGORIES = [
+  { id: 1001, name: '여성패션' },
+  { id: 1002, name: '남성패션' },
+  { id: 1010, name: '뷰티' },
+  { id: 1011, name: '출산/유아동' },
+  { id: 1012, name: '식품' },
+  { id: 1013, name: '주방용품' },
+  { id: 1014, name: '생활용품' },
+  { id: 1015, name: '홈인테리어' },
+  { id: 1016, name: '가전디지털' },
+  { id: 1017, name: '스포츠/레저' },
+  { id: 1018, name: '자동차용품' },
+  { id: 1019, name: '도서/음반/DVD' },
+  { id: 1020, name: '완구/취미' },
+  { id: 1021, name: '문구/오피스' },
+  { id: 1024, name: '헬스/건강식품' },
+  { id: 1025, name: '국내여행' },
+  { id: 1026, name: '해외여행' },
+  { id: 1029, name: '반려동물용품' },
+  { id: 1030, name: '유아동패션' },
 ];
 
 export const TONES = [
@@ -436,6 +472,11 @@ export function defaultState() {
       webhook: '',
       brandName: '코네스',
       autoApprove: false,
+      // 소스 자동 수집 · 제휴 API (이 브라우저에만 저장, 서버에는 저장하지 않습니다)
+      coupang: { accessKey: '', secretKey: '', subId: '' },
+      toss: { accessKey: '', secretKey: '', publisherId: '' },
+      newspicRss: '',
+      affiliatePool: [],
     },
     focusGoal: 'affiliate',
     goalMix: { ...DEFAULT_GOAL_MIX },

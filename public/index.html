@@ -7,7 +7,7 @@
 <title>SNS 오토파일럿 — 매일 1회~24회 SNS 자동화 스튜디오</title>
 <meta name="description" content="뉴스픽·쿠팡파트너스·브랜드커넥트·토스 소스에서 4종 콘텐츠를 만들고, 9개 채널 발행 큐를 매일 1~24회 자동으로 채우는 SNS 자동화 스튜디오." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236366f1'/%3E%3Cpath d='M34 12 20 36h11l-3 16 16-26H32l2-14z' fill='%23fff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="/app.css?v=1.0.3" />
+<link rel="stylesheet" href="/app.css?v=1.1.0" />
 </head>
 <body>
 <div class="app-shell">
@@ -156,6 +156,7 @@
               <span>링크 (선택)</span>
               <input id="linkInput" type="url" placeholder="https://... 제휴·원문 링크" maxlength="300" autocomplete="off" />
             </label>
+            <div class="source-auto" id="sourceAuto"></div>
             <p class="hint" id="sourceHint"></p>
           </article>
 
@@ -201,6 +202,16 @@
                 <h4 id="resultTitle">—</h4>
                 <p id="resultHook">—</p>
                 <div class="tag-row" id="resultTags"></div>
+              </div>
+              <div class="partner-block" id="resultPartner" hidden>
+                <div class="partner-part">
+                  <div class="copy-row"><strong>본문 · 후킹 2~3줄 <span class="muted">(링크 없음)</span></strong><button class="btn btn-ghost btn-sm" id="copyBodyBtn" type="button">본문 복사</button></div>
+                  <div class="copy-area" id="partnerBody"></div>
+                </div>
+                <div class="partner-part">
+                  <div class="copy-row"><strong>연결 댓글 · 제휴 링크</strong><button class="btn btn-ghost btn-sm" id="copyCommentBtn" type="button">연결 댓글 복사</button></div>
+                  <div class="copy-area" id="partnerComment"></div>
+                </div>
               </div>
               <div class="tabs" id="resultTabs" role="tablist">
                 <button class="tab active" data-tab="reels" type="button">쇼츠·릴스</button>
@@ -392,6 +403,55 @@
         <p class="hint">지금은 저장만 하며, 실제 자동 발행은 2단계에서 서버 워커가 이어받습니다.</p>
       </section>
 
+      <section class="sheet-section sheet-wide">
+        <h4>소스 · 제휴 API</h4>
+        <p class="hint">키는 이 브라우저에만 저장되고, 자동 불러오기 요청 때 해당 API로만 전달됩니다. 서버에는 저장하지 않습니다.</p>
+
+        <div class="key-block" id="coupangKeyBlock">
+          <div class="key-head"><strong>🛒 쿠팡파트너스</strong><span class="small-tag" id="coupangKeyState">미등록</span></div>
+          <div class="key-grid">
+            <label class="field"><span>Access Key</span><input id="coupangAccessKey" type="password" autocomplete="off" spellcheck="false" placeholder="쿠팡파트너스 Access Key" /></label>
+            <label class="field"><span>Secret Key</span><input id="coupangSecretKey" type="password" autocomplete="off" spellcheck="false" placeholder="Secret Key" /></label>
+            <label class="field"><span>subId (선택)</span><input id="coupangSubId" type="text" maxlength="40" autocomplete="off" placeholder="예: sns-auto" /></label>
+          </div>
+          <div class="inline-actions">
+            <button class="btn btn-ghost btn-sm" id="clearCoupangKeys" type="button">쿠팡 키 초기화</button>
+            <span class="hint" id="coupangMaskHint">저장된 키는 마스킹되어 표시됩니다.</span>
+          </div>
+        </div>
+
+        <div class="key-block" id="tossKeyBlock">
+          <div class="key-head"><strong>💙 토스 쉐어링크</strong><span class="small-tag" id="tossKeyState">미등록</span></div>
+          <div class="key-grid">
+            <label class="field"><span>Access Key</span><input id="tossAccessKey" type="password" autocomplete="off" spellcheck="false" placeholder="토스 쉐어링크 Access Key" /></label>
+            <label class="field"><span>Secret Key</span><input id="tossSecretKey" type="password" autocomplete="off" spellcheck="false" placeholder="Secret Key" /></label>
+            <label class="field"><span>publisherId</span><input id="tossPublisherId" type="text" maxlength="60" autocomplete="off" placeholder="publisherId" /></label>
+          </div>
+          <p class="hint notice-line">⚠️ 토스 Open API는 <strong>고정 출발지 IP 등록</strong>이 필요합니다. 등록 전에는 링크 발급 호출이 거부되므로, 지금은 아래 URL 풀에 쉐어링크를 넣어 🎲 뽑기로 쓰는 방식을 함께 제공합니다.</p>
+        </div>
+
+        <label class="field">
+          <span>뉴스픽 파트너스 맞춤 RSS URL</span>
+          <input id="newspicRssInput" type="url" autocomplete="off" placeholder="https://partners.newspic.kr/rss/....xml" maxlength="600" />
+        </label>
+        <div class="inline-actions">
+          <button class="btn btn-ghost btn-sm" id="testNewspicBtn" type="button">RSS · 핫기사 확인</button>
+          <span class="hint" id="newspicRssStatus">핫기사는 RSS 없이도 불러옵니다.</span>
+        </div>
+      </section>
+
+      <section class="sheet-section sheet-wide">
+        <h4>제휴 URL 풀</h4>
+        <p class="hint">브랜드커넥트 · 토스 쉐어링크 등 제휴 링크를 여러 개 등록해 두면, 스튜디오에서 🎲 랜덤 뽑기로 하나를 골라 상품명·링크를 자동으로 채웁니다.</p>
+        <ul class="pool-list" id="poolList"></ul>
+        <div class="pool-add">
+          <label class="field"><span>상품명</span><input id="poolName" type="text" maxlength="80" autocomplete="off" placeholder="예: 제주 항공권 특가" /></label>
+          <label class="field"><span>제휴 URL</span><input id="poolUrl" type="url" autocomplete="off" placeholder="https://..." maxlength="300" /></label>
+          <label class="field"><span>종류</span><select id="poolKind"></select></label>
+          <button class="btn btn-ghost btn-sm" id="poolAddBtn" type="button">풀에 추가</button>
+        </div>
+      </section>
+
       <section class="sheet-section">
         <h4>데이터</h4>
         <div class="inline-actions">
@@ -400,7 +460,7 @@
         </div>
         <p class="hint">큐·설정은 localStorage에 저장됩니다. 브라우저를 바꾸면 JSON으로 옮겨 주세요.</p>
         <div class="stack-lines">
-          <div class="mode-line"><span>버전</span><strong id="appVersion">1.0.3</strong></div>
+          <div class="mode-line"><span>버전</span><strong id="appVersion">1.1.0</strong></div>
           <div class="mode-line"><span>큐 항목</span><strong id="appQueueCount">0</strong></div>
           <div class="mode-line"><span>AI 모드</span><strong id="appAiMode">프리뷰</strong></div>
         </div>
@@ -413,6 +473,6 @@
   </form>
 </dialog>
 
-<script type="module" src="/js/app.js?v=1.0.3"></script>
+<script type="module" src="/js/app.js?v=1.1.0"></script>
 </body>
 </html>

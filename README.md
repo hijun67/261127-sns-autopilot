@@ -1,4 +1,4 @@
-# SNS 오토파일럿 (SNS Autopilot) v1.0.3
+# SNS 오토파일럿 (SNS Autopilot) v1.1.0
 
 매일 **1회 ~ 24회**, **9개 채널**에 올릴 콘텐츠를 한 곳에서 만들고 발행 큐까지 관리하는 SNS 자동화 스튜디오입니다.
 소스 하나(뉴스픽·쿠팡파트너스·브랜드커넥트·토스·내 사이트·키워드)를 넣으면 **쇼츠 대본 · 카드뉴스(1080×1080) · 블로그 HTML · SNS 단문/스레드** 4종을 한 번에 만들고, 하루 타임테이블에 맞춰 큐에 쌓습니다.
@@ -7,6 +7,41 @@
   - 프로젝트 이름은 `sns-autopilot` 이지만, `sns-autopilot.pages.dev` 주소는 **다른 사용자가 이미 선점**하고 있어(2026-11-27 확인, 일본어 ‘投稿案の承認’ 서비스) Cloudflare가 `-bin` 접미사를 붙였습니다. 원하시면 나중에 `sns.cones.info` 같은 사용자 도메인을 붙일 수 있습니다.
 - **저장소**: `hijun67/261127-sns-autopilot`
 - **만든 날**: 2026-11-27 (KST)
+
+## v1.1.0 — 소스별 자동 수집 · 제휴링크 · 본문/댓글 분리
+
+소스를 고르면 스튜디오 1단계 아래에 **그 소스에 맞는 자동 불러오기 영역**이 붙습니다.
+
+| 소스 | 자동 불러오기 | 채워지는 값 |
+|---|---|---|
+| 🛒 쿠팡 파트너스 | 카테고리(19개) 랜덤/지정 → 상품 1개 랜덤 → 제휴 딥링크 발급 | 상품명 · 제휴 링크(+가격·로켓배송·이미지 카드) |
+| 📰 뉴스픽 파트너스 | 핫기사 목록(실시간 파싱) + 맞춤 RSS | 기사 제목 · 기사 링크 |
+| 📰 뉴스픽 웹 | 위와 동일 | 기사 제목 · 기사 링크 |
+| 🟩 네이버 브랜드커넥트 · 💙 토스 쉐어링크 | 제휴 URL 풀에서 🎲 랜덤 뽑기 | 상품명 · 제휴 링크 |
+| ✍️ 자체 생성 · 🔗 내 사이트 URL | 없음(직접 입력) | — |
+
+### 1. 쿠팡파트너스 자동 상품 선택 + 제휴 딥링크 (`/api/sources/coupang`)
+- 설정 모달에 `Access Key` · `Secret Key` · `subId`(선택) 입력칸. 브라우저(`localStorage`)에만 저장하고 화면에는 **마스킹**(`AKIA••••••ABCD`)으로 보여 주며, **쿠팡 키 초기화** 버튼으로 지웁니다. 키는 서버에 저장되지 않고 요청마다 전달됩니다.
+- 서버 함수가 Web Crypto `HMAC-SHA256` 으로 쿠팡 CEA 서명(`CEA algorithm=HmacSHA256,access-key=…,signed-date=…,signature=…`, `signed-date=YYMMDD'T'HHMMSS'Z'` UTC, 메시지 = `signed-date + method + path + query`)을 만들어
+  - `GET /products/bestcategories/{categoryId}?limit=20&subId=…` (카테고리 미지정이면 19개 중 랜덤, 목록이 비면 `goldbox`로 폴백)
+  - 랜덤 1개 선택 → `POST /v2/providers/affiliate_open_api/apis/openapi/v1/deeplink`
+  - 응답: `{ title, price, isRocket, imageUrl, landingUrl(추적 링크), originalUrl, category }`
+- 키가 없으면 **400 + 안내 문구**, 인증 실패 401·레이트리밋 429는 각각 구분해 메시지로 돌려줍니다. 딥링크만 실패하면 원본 상품 URL로 폴백하고 그 사실을 알립니다.
+
+### 2. 뉴스픽 핫기사 + 맞춤 RSS (`/api/sources/newspic`)
+- `https://www.newspic.kr` → `https://m.newspic.kr` 순서로 실제 HTML을 받아 **서버 렌더된 기사 목록을 파싱**합니다(제목 `<h1>`/`.heading`, 링크 `/view.html?nid=…`, 이미지 `data-original`, 요약 `.des`/`<h2>`). CSR·차단으로 실패하면 상태와 이유를 `warnings`로 남기고 RSS 경로로 계속 씁니다.
+- 설정에 넣은 **뉴스픽 파트너스 맞춤 RSS XML**도 함께 파싱합니다(`<item>`·Atom `<entry>`, CDATA·엔티티·`media:content`/`enclosure` 이미지). SSRF 방지를 위해 **http(s) + `*.newspic.kr` 주소만** 서버가 대신 호출합니다.
+- `articles`는 핫기사 먼저 + 내 RSS 순으로 합치고 같은 링크는 한 번만 돌려줍니다.
+
+### 3. 뉴스픽 파트너스 전용 포맷 (본문 / 연결 댓글 분리)
+- **본문**: 호기심을 자극하는 **후킹 2~3줄**, 링크 없음
+- **연결 댓글**: **제휴 링크 + 댓글 유도 문구**(첫 댓글용). 대가성 문구가 켜져 있으면 댓글 끝에 함께 붙습니다.
+- 결과 패널과 SNS 탭에 **본문 복사 / 연결 댓글 복사** 버튼을 각각 두고, AI 프롬프트도 `partner.body`·`partner.comment`를 따로 요구합니다. AI가 본문에 링크를 넣으면 제거하고 3줄로 자릅니다.
+- 큐 항목에도 `partnerBody`·`comment`를 함께 저장해 나중에 **댓글 복사** 버튼으로 꺼낼 수 있습니다.
+
+### 4. 브랜드커넥트 · 토스 쉐어링크 URL 풀 + 토스 API 설정
+- 설정의 **제휴 URL 풀**에 상품명·URL·종류(브랜드커넥트/토스/쿠팡/기타)를 여러 개 등록·삭제. 스튜디오에서 **🎲 랜덤 뽑기**를 누르면 해당 소스 종류에서 1개를 골라 상품명·링크를 자동 입력합니다(없으면 `기타` → 전체 순 폴백).
+- 설정에 토스 쉐어링크 `Access Key`·`Secret Key`·`publisherId` 입력칸과 **“토스 Open API는 고정 출발지 IP 등록이 필요함”** 안내를 넣었습니다. IP 등록 전에는 링크 발급 호출이 거부되므로 URL 풀 방식과 함께 씁니다.
 
 ## 화면
 
@@ -71,10 +106,17 @@ public/
     generator.js      # 스케줄·콘텐츠 생성·큐 상태 전이 (순수 함수)
     store.js          # localStorage 병합·JSON 내보내기/불러오기
     cardnews.js       # Canvas 1080×1080 렌더·PNG 저장
+    partner.js        # 뉴스픽 파트너스 본문/연결 댓글 생성 (순수 함수)
+    sourcehub.js      # 제휴 URL 풀·키 마스킹·소스 API 호출 래퍼
     app.js            # UI 컨트롤러
-functions/api/generate.js   # BYOK AI 프록시 (Gemini/OpenRouter/Groq)
-tests/core.test.mjs         # 단위 테스트 30개 (node:test, 의존성 0)
-scripts/verify_ui.py        # Playwright 흐름 검증 + 스크린샷
+functions/api/generate.js          # BYOK AI 프록시 (Gemini/OpenRouter/Groq)
+functions/api/sources/coupang.js   # 쿠팡 상품 랜덤 선택 + 제휴 딥링크
+functions/api/sources/newspic.js   # 뉴스픽 핫기사 + 맞춤 RSS
+functions/api/sources/_lib.js      # CEA 서명·HTML/RSS 파서·SSRF 가드
+tests/core.test.mjs         # 단위 테스트 (node:test, 의존성 0)
+tests/v1_1_0.test.mjs       # v1.1.0 소스·서명·파서·본문/댓글·풀 테스트
+scripts/verify_v110.py      # v1.1.0 Playwright 검증 (소스 자동 수집·복사 버튼·API)
+scripts/verify_ui.py        # 기본 흐름 검증 + 스크린샷
 ```
 
 ## 로컬 실행
@@ -110,6 +152,17 @@ wrangler pages deploy public --project-name sns-autopilot
 ```
 - 성공: `{ "ok": true, "provider": "gemini", "model": "gemini-2.5-flash", "text": "..." }`
 - 실패: `{ "ok": false, "error": "..." }` (400 키/입력 오류, 401/429/502/504 업스트림 오류)
+
+`POST /api/sources/coupang`
+```json
+{ "accessKey": "...", "secretKey": "...", "subId": "sns-auto", "categoryId": 0, "limit": 20 }
+```
+- 성공: `{ "ok": true, "item": { "title", "price", "isRocket", "imageUrl", "landingUrl", "originalUrl", "category" }, "deeplinkOk": true }`
+- 키 없음 **400**, 인증 실패 **401**, 레이트리밋 **429**, 업스트림 오류 **502/504**
+
+`GET /api/sources/newspic?limit=8&category=hot&rss=https://partners.newspic.kr/...xml`
+- 성공: `{ "ok": true, "articles": [{ "title", "link", "image", "summary", "from": "hot|rss" }], "hot": [...], "rss": [...], "warnings": [] }`
+- RSS URL이 `*.newspic.kr` 밖이면 `rssError`에 이유를 담고 핫기사만 돌려줍니다.
 
 ## 검증 결과 (2026-11-27)
 

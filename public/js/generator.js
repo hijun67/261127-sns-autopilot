@@ -16,6 +16,7 @@ import {
   getFrequency,
   formatsForChannel,
 } from './data.js';
+import { buildPartnerCopy, isPartnerSource } from './partner.js';
 
 /* ------------------------------------------------------------------ */
 /* 유틸                                                                */
@@ -364,6 +365,16 @@ export function generateContent(opts = {}) {
   const baseTags = [...(HASHTAG_SETS[goalId] || HASHTAG_SETS.naver), `#${channel.name.replace(/\s+/g, '')}`];
   const hashtags = [...new Set(baseTags)].slice(0, 10);
 
+  // 뉴스픽 파트너스: 후킹 2~3줄 본문(링크 없음) + 제휴 링크 연결 댓글을 분리합니다.
+  const partner = isPartnerSource(source.id)
+    ? buildPartnerCopy({
+        topic,
+        link: rawLink,
+        seed,
+        disclosure: needsDisclosure ? DISCLOSURE_TEXT : null,
+      })
+    : null;
+
   const title = buildTitle(topic, goal, tone, seed);
   const seoTitle = truncateChars(`${title} | ${new Date().getFullYear()} 정리`, 60);
   const metaDescription = truncateChars(`${hook} ${points[0]}부터 ${points[2]}까지 순서대로 정리했습니다.`, 150);
@@ -371,7 +382,17 @@ export function generateContent(opts = {}) {
   const shorts = buildShorts({ topic, hook, points, ctaText, tone, seed, hashtags });
   const cardnews = buildCardnews({ topic, hook, points, ctaText, link, disclosure: needsDisclosure, goal, channel, seed });
   const blog = buildBlog({ topic, title, seoTitle, metaDescription, hook, points, body, ctaText, link, disclosure: needsDisclosure ? DISCLOSURE_TEXT : null, hashtags, goal });
-  const sns = buildSns({ topic, hook, points, ctaText, link, hashtags, channel });
+  const sns = buildSns({
+    topic,
+    hook,
+    points,
+    ctaText,
+    // 파트너스 포맷은 본문에 링크를 넣지 않습니다. 링크는 연결 댓글로만 나갑니다.
+    link: partner ? '' : link,
+    hashtags,
+    channel,
+    partner,
+  });
 
   return {
     meta: {
@@ -388,6 +409,8 @@ export function generateContent(opts = {}) {
       mode: opts.mode || 'preview',
       tone,
       seed,
+      partnerFormat: Boolean(partner),
+      comment: partner?.comment || '',
       generatedAt: new Date().toISOString(),
       link,
       disclosure: needsDisclosure ? DISCLOSURE_TEXT : null,
@@ -396,6 +419,7 @@ export function generateContent(opts = {}) {
     seoTitle,
     metaDescription,
     hook,
+    partner,
     summary: points.map((p, i) => `${i + 1}. ${p}`).join(' / '),
     keyPoints: points,
     cta: { text: ctaText, label: goal.cta, link },
@@ -538,8 +562,21 @@ function buildBlog({ topic, title, seoTitle, metaDescription, hook, points, body
   };
 }
 
-function buildSns({ topic, hook, points, ctaText, link, hashtags, channel }) {
+function buildSns({ topic, hook, points, ctaText, link, hashtags, channel, partner = null }) {
   const tagLine = hashtags.slice(0, 4).join(' ');
+  if (partner) {
+    // 뉴스픽 파트너스: 게시 본문은 후킹 2~3줄만, 링크·댓글 유도는 연결 댓글로 분리
+    return {
+      single: partner.body,
+      x: [partner.body],
+      threads: partner.body,
+      facebook: partner.body,
+      tagLine,
+      channel: channel.id,
+      partnerBody: partner.body,
+      partnerComment: partner.comment,
+    };
+  }
   const single = truncateChars(`${hook}\n\n· ${points[0]}\n· ${points[1]}\n· ${points[2]}\n\n${link || ''}`.trim(), 260);
   const x = [
     truncateChars(`${hook}`, 260),
@@ -571,6 +608,9 @@ export function makeQueueItem(content, { scheduledAt, status = 'pending', id } =
     title: content.title,
     mode: content.meta.mode,
     apiSupported: content.meta.apiSupported,
+    // 뉴스픽 파트너스는 큐에도 본문·연결 댓글을 함께 저장합니다.
+    partnerBody: content.partner?.body || '',
+    comment: content.partner?.comment || '',
     createdAt: new Date().toISOString(),
     content,
   };

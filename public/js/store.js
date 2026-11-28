@@ -2,6 +2,7 @@
 // 브라우저에서는 localStorage, 테스트에서는 주입한 가짜 스토리지를 씁니다.
 
 import { APP, CHANNELS, defaultState, DEFAULT_GOAL_MIX } from './data.js';
+import { EMPTY_COUPANG, EMPTY_TOSS, normalizePoolEntry } from './sourcehub.js';
 
 export const MAX_QUEUE = 500;
 
@@ -29,6 +30,30 @@ export function mergeState(raw) {
     !trimmedBrand || trimmedBrand === LEGACY_BRAND
       ? base.settings.brandName
       : trimmedBrand.slice(0, 30);
+
+  // 소스 자동 수집 · 제휴 API — 키는 이 브라우저(localStorage)에만 저장됩니다.
+  const str = (value, max) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
+  const coupang = raw.settings?.coupang || {};
+  settings.coupang = {
+    ...EMPTY_COUPANG,
+    accessKey: str(coupang.accessKey, 200),
+    secretKey: str(coupang.secretKey, 200),
+    subId: str(coupang.subId, 40),
+  };
+  const toss = raw.settings?.toss || {};
+  settings.toss = {
+    ...EMPTY_TOSS,
+    accessKey: str(toss.accessKey, 200),
+    secretKey: str(toss.secretKey, 200),
+    publisherId: str(toss.publisherId, 60),
+  };
+  settings.newspicRss = str(raw.settings?.newspicRss, 600);
+  settings.affiliatePool = Array.isArray(raw.settings?.affiliatePool)
+    ? raw.settings.affiliatePool
+        .slice(0, 100)
+        .map((entry) => normalizePoolEntry(entry || {}, entry?.id))
+        .filter(Boolean)
+    : [];
 
   const connections = { ...base.connections };
   for (const ch of CHANNELS) {

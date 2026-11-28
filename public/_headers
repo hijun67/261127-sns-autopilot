@@ -6,3 +6,6 @@
 
 /api/generate
   cache-control: no-store
+
+/api/sources/*
+  cache-control: no-store
