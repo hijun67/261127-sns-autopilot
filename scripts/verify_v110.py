@@ -197,12 +197,19 @@ with sync_playwright() as p:
     def http_json(path, payload=None):
         url = f'{BASE}{path}'
         data = json.dumps(payload).encode() if payload is not None else None
-        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+        req = urllib.request.Request(url, data=data, headers={
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36',
+            'Accept': 'application/json'})
         try:
             with urllib.request.urlopen(req, timeout=30) as res:
                 return res.status, json.loads(res.read().decode())
         except urllib.error.HTTPError as err:
-            return err.code, json.loads(err.read().decode() or '{}')
+            raw = err.read().decode() or '{}'
+            try:
+                return err.code, json.loads(raw)
+            except json.JSONDecodeError:
+                return err.code, {'raw': raw[:200]}
 
     cstatus, cbody = http_json('/api/sources/coupang', {'accessKey': '', 'secretKey': ''})
     nstatus, nbody = http_json('/api/sources/newspic?limit=3')

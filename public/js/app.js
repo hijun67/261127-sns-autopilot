@@ -86,6 +86,8 @@ function toast(message, kind = '') {
   el.className = `toast ${kind}`;
   el.textContent = message;
   stack.appendChild(el);
+  // 토스트가 쌓여 화면(특히 복사 버튼)을 가리지 않도록 최근 3개만 남깁니다.
+  while (stack.children.length > 3) stack.firstElementChild.remove();
   setTimeout(() => {
     el.style.opacity = '0';
     el.style.transition = 'opacity .3s';
