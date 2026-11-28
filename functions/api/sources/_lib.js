@@ -291,31 +291,101 @@ const firstGroup = (text, re) => {
   return m ? m[1] : '';
 };
 
-/** m.newspic.kr 목록 HTML → 기사 배열 (제목·링크·이미지·요약) */
+/**
+ * 기사 출처 줄인지 판별합니다. (`연합뉴스 11.28`, `스포츠동아 11.28` 같은 형태)
+ * 제목이 앵커 밖에 있고 출처 줄만 앵커 안에 있으면, 출처 줄을 제목으로 쓰지 않기 위해 씁니다.
+ */
+const looksLikeSourceLine = (text = '') => /^[가-힣A-Za-z0-9·&()\s]{1,24}\s+\d{1,2}[./]\d{1,2}\.?$/.test(String(text).trim());
+
+/**
+ * m.newspic.kr 목록 HTML → 기사 배열 (제목·링크·이미지·요약)
+ *
+ * 뉴스픽 모바일 홈은 개편 때마다 마크업이 조금씩 달라집니다.
+ *  - 제목 <h1>·<p class="heading">이 <a href="view.html?nid=…"> 안에 있는 경우(11-27까지)
+ *  - 앵커가 이미지만 감싸고 제목이 형제 요소로 빠진 경우(11-28)
+ * 둘 다 같은 결과가 나오도록, 앵커를 기준으로 같은 리스트 항목(<li>/<article>)까지 넓혀서
+ * 제목과 링크를 한 항목 단위로 짝지어 읽습니다.
+ */
 export function parseNewspicHtml(html = '', { base = 'https://m.newspic.kr', limit = 10 } = {}) {
+  const text = String(html || '');
   const out = [];
   const seen = new Set();
+
+  const absolute = (href = '') => {
+    const value = decodeEntities(href).trim();
+    if (!value) return '';
+    if (/^https?:\/\//i.test(value)) return value;
+    if (value.startsWith('//')) return `https:${value}`;
+    return `${base}${value.startsWith('/') ? '' : '/'}${value}`;
+  };
+
+  // 항목 안에서 제목 후보를 위에서부터 찾습니다. 출처 줄("연합뉴스 11.28")은 제목에서 제외합니다.
+  const pickTitle = (block, { allowSourceLike = false } = {}) => {
+    const candidates = [
+      stripTags(firstGroup(block, /<h1[^>]*>([\s\S]*?)<\/h1>/i)),
+      stripTags(firstGroup(block, /<p[^>]+class="[^"]*(?:heading|title|tit)[^"]*"[^>]*>([\s\S]*?)<\/p>/i)),
+      stripTags(firstGroup(block, /<span[^>]+class="[^"]*(?:heading|title|tit)[^"]*"[^>]*>([\s\S]*?)<\/span>/i)),
+      stripTags(firstGroup(block, /<h2[^>]*>([\s\S]*?)<\/h2>/i)),
+      stripTags(firstGroup(block, /<img[^>]+alt="([^"]{10,})"/i)),
+    ];
+    for (const candidate of candidates) {
+      const title = String(candidate || '').trim();
+      if (title.length < 4) continue;
+      if (!allowSourceLike && looksLikeSourceLine(title)) continue;
+      return title;
+    }
+    return '';
+  };
+
+  const push = (hrefRaw, block) => {
+    const link = absolute(hrefRaw);
+    if (!link) return;
+    const nid = (link.match(/[?&]nid=(\d+)/) || [])[1] || link;
+    if (seen.has(nid)) return;
+    const title = pickTitle(block);
+    if (!title) return;
+    seen.add(nid);
+    const rawImage =
+      firstGroup(block, /data-original="([^"]+)"/i) || firstGroup(block, /<img[^>]+src="([^"]+)"/i);
+    const decodedImage = decodeEntities(rawImage).trim();
+    const image = /^https?:\/\//i.test(decodedImage) ? decodedImage : '';
+    const summaryCandidates = [
+      stripTags(firstGroup(block, /<h2[^>]*>([\s\S]*?)<\/h2>/i)),
+      stripTags(firstGroup(block, /<p[^>]+class="[^"]*des[^"]*"[^>]*>([\s\S]*?)<\/p>/i)),
+    ].filter((value) => value && value !== title);
+    out.push({ title, link, image, summary: summaryCandidates[0] || '', source: '뉴스픽', date: '' });
+  };
+
   const anchorRe = /<a\b[^>]*href="([^"]*\/view\.html\?nid=\d+[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
   let m;
-  while ((m = anchorRe.exec(String(html))) !== null) {
-    const href = decodeEntities(m[1]);
-    const inner = m[2];
-    const title =
-      stripTags(firstGroup(inner, /<h1[^>]*>([\s\S]*?)<\/h1>/i)) ||
-      stripTags(firstGroup(inner, /<p[^>]+class="[^"]*heading[^"]*"[^>]*>([\s\S]*?)<\/p>/i));
-    if (!title) continue;
-    const link = href.startsWith('http') ? href : `${base}${href.startsWith('/') ? '' : '/'}${href}`;
-    if (seen.has(link)) continue;
-    seen.add(link);
-    const rawImage =
-      firstGroup(inner, /data-original="([^"]+)"/i) || firstGroup(inner, /<img[^>]+src="([^"]+)"/i);
-    const image = /^https?:\/\//i.test(decodeEntities(rawImage)) ? decodeEntities(rawImage) : '';
-    const summary =
-      stripTags(firstGroup(inner, /<h2[^>]*>([\s\S]*?)<\/h2>/i)) ||
-      stripTags(firstGroup(inner, /<p[^>]+class="[^"]*des[^"]*"[^>]*>([\s\S]*?)<\/p>/i));
-    out.push({ title, link, image, summary, source: '뉴스픽', date: '' });
+  while ((m = anchorRe.exec(text)) !== null) {
     if (out.length >= limit) break;
+    const inner = m[2];
+
+    // 1) 앵커 안에 제목이 있으면 그대로 사용합니다(기존 마크업).
+    let block = inner;
+    if (!pickTitle(inner)) {
+      // 2) 앵커가 이미지만 감싸면 같은 리스트 항목(<li>)·기사 블록(<article>)까지 넓혀 제목을 찾습니다.
+      const liStart = text.lastIndexOf('<li', m.index);
+      const liEnd = text.indexOf('</li>', m.index);
+      const articleStart = text.lastIndexOf('<article', m.index);
+      const articleEnd = text.indexOf('</article>', m.index);
+      const scopes = [];
+      if (liStart !== -1 && liEnd > m.index) scopes.push(text.slice(liStart, liEnd + 5));
+      if (articleStart !== -1 && articleEnd > m.index) scopes.push(text.slice(articleStart, articleEnd + 10));
+      // 3) 마지막으로 앵커 바로 뒤 형제 요소(제목이 뒤따라오는 구조)를 봅니다.
+      scopes.push(text.slice(m.index, Math.min(text.length, m.index + 1200)));
+      for (const scope of scopes) {
+        if (pickTitle(scope)) {
+          block = scope;
+          break;
+        }
+      }
+    }
+
+    push(m[1], block);
   }
+
   return out;
 }
 
