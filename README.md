@@ -164,6 +164,19 @@ wrangler pages deploy public --project-name sns-autopilot
 - 성공: `{ "ok": true, "articles": [{ "title", "link", "image", "summary", "from": "hot|rss" }], "hot": [...], "rss": [...], "warnings": [] }`
 - RSS URL이 `*.newspic.kr` 밖이면 `rssError`에 이유를 담고 핫기사만 돌려줍니다.
 
+## 검증 결과 (2026-11-28 · v1.1.0)
+
+`scripts/verify_v110.py` 를 라이브(https://sns-autopilot-bin.pages.dev)에서 실행 → **17/17 ALL PASS**
+- 버전 1.1.0 · 설정의 쿠팡/토스/뉴스픽RSS 필드 7개 · 토스 고정 IP 안내
+- URL 풀 등록 → 🎲 뽑기로 상품명·링크 자동 입력
+- 뉴스픽 핫기사 **8건 라이브 파싱** → 클릭 시 제목·링크 채움
+- 뉴스픽 파트너스: 본문 3줄(링크 없음) / 연결 댓글(제휴 링크) 분리, 두 복사 버튼 클립보드 값 일치
+- 큐에 `comment`·`partnerBody` 저장 + '댓글 복사' 버튼
+- `/api/sources/coupang` 빈 키 **400**, `/api/sources/newspic` **200**
+- 콘솔/페이지 에러 **0**, 가로 넘침 **0**(1440·390)
+- 단위 테스트 **72/72 통과** (`node --test tests/*.test.mjs`)
+- 증빙: `docs/v110-verify-live-2026-11-28.json`, `docs/screenshots/v110-*.png`, 보고서 `docs/v110-report-2026-11-28.md`
+
 ## 검증 결과 (2026-11-27)
 
 ### 라이브 사이트 (https://sns-autopilot-bin.pages.dev)

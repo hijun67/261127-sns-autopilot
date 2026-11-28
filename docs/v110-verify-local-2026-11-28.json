@@ -1,0 +1,149 @@
+{
+  "base": "http://127.0.0.1:8788",
+  "checks": {
+    "version_and_fields": {
+      "ok": true,
+      "detail": {
+        "version": "1.1.0",
+        "fields": {
+          "#coupangAccessKey": true,
+          "#coupangSecretKey": true,
+          "#coupangSubId": true,
+          "#tossAccessKey": true,
+          "#tossSecretKey": true,
+          "#tossPublisherId": true,
+          "#newspicRssInput": true
+        },
+        "tossIpNotice": true
+      }
+    },
+    "pool_add": {
+      "ok": true,
+      "detail": {
+        "pool": [
+          {
+            "id": "p_mwzp0f3w_44vt",
+            "name": "제주 항공권 특가",
+            "url": "https://brandconnect.naver.com/affiliate/test-1",
+            "kind": "brandconnect"
+          }
+        ],
+        "emptyAddToast": "http(s) 주소로 된 제휴 URL을 입력해 주세요."
+      }
+    },
+    "pool_draw": {
+      "ok": true,
+      "detail": {
+        "selfAutoHidden": true,
+        "autoPanel": "🎲 제휴 URL 풀 | 1개 등록 | 🎲 랜덤 뽑기 | 풀 관리 |  | 뽑기를 누르면 상품명·제휴 링크가 자동 입력됩니다.",
+        "keyword": "제주 항공권 특가",
+        "link": "https://brandconnect.naver.com/affiliate/test-1"
+      }
+    },
+    "coupang_ui": {
+      "ok": true,
+      "detail": {
+        "panel": "🎲 소스 자동 불러오기 | 키 미등록 | 🎲 카테고리 랜덤 (19개) | 여성패션 | 남성패션 | 뷰티 | 출산/유아동 | 식품 | 주방용품 | 생활용품 | 홈인테리어 | 가전디지털 | 스포츠/레저 | 자동차용품 | 도서/음반/DVD | 완구/취미 | 문구/오피스 | 헬스/건강식품 | 국내여행 | 해외여행 | 반려동물용품 | 유아동패션 | 🎲 쿠팡 상품 뽑기 |  | 쿠팡파트너스 Access Key·Secret Key를 설정에",
+        "select": true
+      }
+    },
+    "coupang_no_key_guide": {
+      "ok": true,
+      "detail": {
+        "settingsOpened": true,
+        "toast": "쿠팡파트너스 키를 먼저 입력해 주세요. (설정 → 소스 · 제휴 API)"
+      }
+    },
+    "newspic_autofetch": {
+      "ok": true,
+      "detail": {
+        "articleCount": 8,
+        "first": "임찬규♥손새은, 5년 열애 끝…손나은과 진짜 가족 된다 | 핫기사 · 스포츠동아 11.27"
+      }
+    },
+    "newspic_fill": {
+      "ok": true,
+      "detail": {
+        "keyword": "임찬규♥손새은, 5년 열애 끝…손나은과 진짜 가족 된다",
+        "link": "https://m.newspic.kr/view.html?nid=2026112720313423276&pn=82"
+      }
+    },
+    "partner_split": {
+      "ok": true,
+      "detail": {
+        "visible": true,
+        "lines": 3,
+        "body": "임찬규♥손새은, 5년 열애 끝…손나은과 진짜 가족 된다\n이게 왜 이슈인지 아직 모르는 분이 많습니다.\n핵심만 보면 생각보다 단순합니다.",
+        "comment": "https://m.newspic.kr/view.html?nid=2026112720313423276&pn=82\n\n이 기사 보고 드는 생각, 한 줄만 남겨주세요. 반응 좋은 주제로 이어가겠습니다."
+      }
+    },
+    "partner_copy_buttons": {
+      "ok": true,
+      "detail": {
+        "bodyCopied": "임찬규♥손새은, 5년 열애 끝…손나은과 진짜 가족 된다\n이게 왜 이슈인지 아직 모르는 분이 많습니다.\n핵심만 보면 생각보다 단순합니다.",
+        "commentCopied": "https://m.newspic.kr/view.html?nid=2026112720313423276&pn=82\n\n이 기사 보고 드는 생각, 한 줄만 남겨주세요. 반응 좋은 주제로 이어가겠습니다."
+      }
+    },
+    "partner_sns_tab": {
+      "ok": true,
+      "detail": {
+        "snsTab": "본문 · 후킹 3줄 (링크 없음) | 본문 복사 | 임찬규♥손새은, 5년 열애 끝…손나은과 진짜 가족 된다 | 이게 왜 이슈인지 아직 모르는 분이 많습니다. | 핵심만 보면 생각보다 단순합니다. | 연결 댓글 · 제휴 링크 | 연결 댓글 복사 | https://m.newspic.kr/view.html?nid=2026112720313423276&pn=82 |  | 이 기사 보고 드는 생각, 한 줄만 남겨주세요. 반응 좋은 주제로 이어가겠습니다. |  | 본문을 먼저 게시하고, 이어서 첫 댓글로 연결 댓글을 붙여넣으세요."
+      }
+    },
+    "queue_comment_saved": {
+      "ok": true,
+      "detail": {
+        "queueCount": 1,
+        "comment": "https://m.newspic.kr/view.html?nid=2026112720313423276&pn=82\n\n이 기사 보고 드는 생각, 한 줄만 남겨주세요. 반응 좋은 주제로 이어가겠습니다.",
+        "partnerBody": "임찬규♥손새은, 5년 열애 끝…손나은과 진짜 가족 된다\n이게 왜 이슈인지 아직 모르는 분이 많습니다.\n핵심만 보면 생각보다 단순합니다."
+      }
+    },
+    "queue_comment_button": {
+      "ok": true,
+      "detail": {
+        "queueList": "13:00 | 11-28 | 임찬규♥손새은, 5년 열애 끝…손나은과 진짜 가족 된다, 왜 난리인가 | 대기 | 🧵 Threads | 카드뉴스 | 뉴스픽 조회수 | API | 본문+댓글 | 승인 | 복사 | 댓글 복사 | 건너뛰기 | 보기"
+      }
+    },
+    "api_coupang_no_key": {
+      "ok": true,
+      "detail": {
+        "status": 400,
+        "ok": false,
+        "error": "쿠팡파트너스 Access Key·Secret Key가 없습니다. 연결 · 설정 → 소스 · 제휴 API 에서 먼저 입력해 주세요."
+      }
+    },
+    "api_newspic_live": {
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "ok": true,
+        "hot": 3,
+        "first": "임찬규♥손새은, 5년 열애 끝…손나은과 진짜 가족 된다",
+        "rssError": null
+      }
+    },
+    "desktop_no_overflow": {
+      "ok": true,
+      "detail": {
+        "sw": 1440,
+        "iw": 1440,
+        "body": 1440
+      }
+    },
+    "mobile_no_overflow": {
+      "ok": true,
+      "detail": {
+        "sw": 390,
+        "iw": 390,
+        "body": 390
+      }
+    },
+    "console_errors": {
+      "ok": true,
+      "detail": {
+        "errors": []
+      }
+    }
+  },
+  "errors": []
+}
